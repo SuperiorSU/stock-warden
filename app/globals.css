@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate/index.js";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Use the next/font-loaded variable so font-swap and size-adjust apply */
+  --font-display: var(--font-dm-serif), Georgia, 'Times New Roman', serif;
+
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-subtle: var(--bg-subtle);
+  --color-muted: var(--bg-muted);
+
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-ink-disabled: var(--ink-disabled);
+
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-primary-bg: var(--accent-primary-bg);
+  --color-accent-hover: var(--accent-hover);
+
+  --color-status-requested: var(--status-requested);
+  --color-status-approved: var(--status-approved);
+  --color-status-rejected: var(--status-rejected);
+  --color-status-pending: var(--status-pending);
+  --color-status-cancelled: var(--status-cancelled);
+
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  /* ── Fluid typography scale ──────────────────────────────────────────────
+     clamp(min, preferred-vw, max) — scales between 360px and 1920px
+     ────────────────────────────────────────────────────────────────────── */
+  --font-size-xs:      clamp(0.6875rem, 0.65rem + 0.2vw,  0.75rem);
+  --font-size-xs--line-height: 1.5;
+  --font-size-sm:      clamp(0.8125rem, 0.78rem + 0.2vw,  0.875rem);
+  --font-size-sm--line-height: 1.5;
+  --font-size-base:    clamp(0.9375rem, 0.9rem  + 0.25vw, 1rem);
+  --font-size-base--line-height: 1.6;
+  --font-size-lg:      clamp(1rem,      0.95rem + 0.35vw, 1.125rem);
+  --font-size-lg--line-height: 1.55;
+  --font-size-xl:      clamp(1.125rem,  1rem    + 0.5vw,  1.25rem);
+  --font-size-xl--line-height: 1.5;
+  --font-size-2xl:     clamp(1.25rem,   1.1rem  + 0.7vw,  1.5rem);
+  --font-size-2xl--line-height: 1.4;
+  --font-size-3xl:     clamp(1.5rem,    1.2rem  + 1.2vw,  1.875rem);
+  --font-size-3xl--line-height: 1.3;
+  --font-size-4xl:     clamp(1.75rem,   1.3rem  + 1.8vw,  2.25rem);
+  --font-size-4xl--line-height: 1.2;
+  --font-size-display: clamp(2rem,      1.5rem  + 2.5vw,  3.5rem);
+  --font-size-display--line-height: 1.1;
+
+  /* xs breakpoint */
+  --breakpoint-xs: 400px;
+}
+
+:root {
+  /* Base — warm off-white, not pure white */
+  --bg-canvas:      #F7F5F2;
+  --bg-surface:     #FFFFFF;
+  --bg-subtle:      #F0EDE8;
+  --bg-muted:       #E8E4DE;
+
+  /* Ink — warm dark, not pure black */
+  --ink-primary:    #1C1917;
+  --ink-secondary:  #44403C;
+  --ink-tertiary:   #78716C;
+  --ink-disabled:   #A8A29E;
+
+  /* Accent — deep forest green (institutional, not tech-startup) */
+  --accent-primary:    #166534;
+  --accent-primary-bg: #DCFCE7;
+  --accent-hover:      #14532D;
+
+  /* Status semantic colors */
+  --status-requested:  #B45309;  /* amber */
+  --status-approved:   #166534;  /* green */
+  --status-rejected:   #B91C1C;  /* red */
+  --status-pending:    #1D4ED8;  /* blue */
+  --status-cancelled:  #71717A;  /* gray */
+
+  /* Borders */
+  --border-default:  #E7E5E4;
+  --border-strong:   #A8A29E;
+
+  /* Layout */
+  --nav-height: 56px;
+
+  /* Radii */
+  --radius-base: 4px;
+}
+
+body {
+  background-color: #F7F5F2;
+  background-color: var(--bg-canvas);
+  color: #1C1917;
+  color: var(--ink-primary);
+  font-family: 'Geist', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* ── Heading constraints ────────────────────────────────────────────────── */
+h1, h2, h3 {
+  max-width: 22ch;
+  text-wrap: balance;
+}
+
+th, .no-wrap-cap {
+  max-width: none;
+}
+
+/* ── Focus rings ────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-base);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Page enter animation ───────────────────────────────────────────────── */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: page-enter 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter { animation: none; }
+}
+
+/* ── Skeleton shimmer ───────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-muted) 25%,
+    var(--bg-subtle) 50%,
+    var(--bg-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; background: var(--bg-muted); }
+}
+
+/* ── Mobile card-stack tables ───────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .stack-table table  { display: block; }
+  .stack-table thead  { display: none; }
+  .stack-table tbody  { display: block; }
+  .stack-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-default);
+    background: var(--bg-surface);
+  }
+  .stack-table tr:hover { background: var(--bg-subtle); }
+
+  .stack-table td {
+    display: flex;
+    flex-direction: column;
+    font-size: var(--font-size-sm);
+  }
+  .stack-table td::before {
+    content: attr(data-label);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--ink-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .stack-table td[data-full] {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ── Background refetch indicator ──────────────────────────────────────── */
+.refetch-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-primary);
+  opacity: 0.7;
+  animation: shimmer 1.4s ease-in-out infinite;
+  background-size: 200% 100%;
+}
+
+/* ── Existing utilities ─────────────────────────────────────────────────── */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  max-height: 2.5em;
+}

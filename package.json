@@ -1,0 +1,60 @@
+{
+  "name": "stock-warden",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.0",
+    "@react-pdf/renderer": "^4.3.1",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.0",
+    "@tanstack/react-query": "^5.100.10",
+    "@types/pdfkit": "^0.17.6",
+    "argon2": "^0.43.1",
+    "axios": "^1.16.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.2.1",
+    "googleapis": "^148.0.0",
+    "lucide-react": "^1.16.0",
+    "next": "16.2.6",
+    "next-auth": "^5.0.0-beta.29",
+    "nodemailer": "^7.0.7",
+    "pdfkit": "^0.18.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hot-toast": "^2.6.0",
+    "recharts": "^3.8.1",
+    "redis": "^5.8.3",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^4.1.8",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/nodemailer": "^6.4.18",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "prisma": "^6.16.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "browserslist": [
+    "Chrome >= 80",
+    "Firefox ESR",
+    "not dead"
+  ]
+}

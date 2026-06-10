@@ -1,0 +1,288 @@
+// Prisma schema for CIMS
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+  INVENTORY_MANAGER
+  SUPER_ADMIN
+}
+
+enum RequestStatus {
+  REQUESTED
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum StockChangeType {
+  ADDED
+  FULFILLED
+  RESTORED
+  ADJUSTED
+  STALE_MARKED
+  STALE_REMOVED
+}
+
+enum NotificationType {
+  REQUEST_CREATED
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  REQUEST_CANCELLED
+  REQUEST_PENDING
+  STOCK_ALERT
+  STOCK_REPLENISHED
+  SYSTEM
+}
+
+model User {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  name          String
+  employeeId    String?       @unique
+  department    String?
+  designation   String?
+  phoneNumber   String?
+  avatarUrl     String?
+  role          Role          @default(USER)
+  isActive      Boolean       @default(true)
+  isApproved    Boolean       @default(false)
+  passwordHash  String
+  lastLoginAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  requests      Request[]
+  notifications Notification[]
+  sessions      UserSession[]
+  loginAttempts LoginAttempt[]
+  stockAlerts   StockAlert[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([role])
+  @@index([department])
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([refreshToken])
+}
+
+model InventoryItem {
+  id            String        @id @default(uuid())
+  name          String
+  slug          String        @unique
+  description   String?
+  imageUrl      String?
+  category      String?
+  unit          String
+  totalQuantity Int           @default(0)
+  availableQty  Int           @default(0)
+  sessionYear   Int
+  isActive      Boolean       @default(true)
+  isStale       Boolean       @default(false)
+  staleMarkedAt DateTime?
+  staleMarkedBy String?
+  unitPrice     Decimal?      @db.Decimal(10, 2)
+  currency      String        @default("INR")
+  isHiddenFromUsers Boolean    @default(false)
+  hiddenAt      DateTime?
+  hiddenBy      String?
+  createdBy     String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  requestItems  RequestItem[]
+  stockAlerts   StockAlert[]
+  stockHistory  StockHistory[]
+
+  @@index([sessionYear])
+  @@index([category])
+  @@index([isActive, isStale])
+  @@index([name])
+}
+
+model Request {
+  id            String               @id @default(uuid())
+  userId        String
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        RequestStatus        @default(REQUESTED)
+  notes         String?
+  adminId       String?
+  adminNotes    String?
+  inventoryManagerId String?
+  inventoryManagerNotes String?
+  invoiceUrl    String?
+  invoiceNumber String?              @unique
+  receiptNumber String?              @unique
+  receiptUrl    String?
+  allocatedByAdminAt DateTime?
+  sessionYear   Int
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  processedAt   DateTime?
+  cancelledAt   DateTime?
+  inventoryProcessedAt DateTime?
+
+  items         RequestItem[]
+  statusHistory RequestStatusHistory[]
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([sessionYear])
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+model RequestItem {
+  id          String        @id @default(uuid())
+  requestId   String
+  request     Request       @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id])
+  quantityReq Int
+  quantityAllocated Int?
+  quantityFul Int?
+  createdAt   DateTime      @default(now())
+
+  @@index([requestId])
+  @@index([itemId])
+}
+
+model ExpenditureRecord {
+  id                String   @id @default(uuid())
+  requestId         String
+  requestItemId     String
+  itemId            String
+  itemName          String
+  category          String?
+  unitPrice         Decimal  @db.Decimal(10, 2)
+  quantityFulfilled Int
+  totalAmount       Decimal  @db.Decimal(12, 2)
+  sessionYear       Int
+  approvedAt        DateTime
+  approvedBy        String
+  department        String?
+  isReversed        Boolean  @default(false)
+  reversedAt        DateTime?
+
+  @@index([itemId])
+  @@index([category])
+  @@index([sessionYear])
+  @@index([approvedAt])
+  @@index([approvedBy])
+  @@index([department])
+}
+
+model RequestStatusHistory {
+  id         String        @id @default(uuid())
+  requestId  String
+  request    Request       @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  fromStatus RequestStatus?
+  toStatus   RequestStatus
+  changedBy  String
+  notes      String?
+  createdAt  DateTime      @default(now())
+
+  @@index([requestId])
+}
+
+model StockAlert {
+  id         String        @id @default(uuid())
+  itemId     String
+  item       InventoryItem @relation(fields: [itemId], references: [id])
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message    String?
+  isRead     Boolean       @default(false)
+  resolvedAt DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@index([itemId])
+  @@index([userId])
+  @@index([isRead])
+}
+
+model StockHistory {
+  id            String          @id @default(uuid())
+  itemId        String
+  item          InventoryItem   @relation(fields: [itemId], references: [id])
+  changeType    StockChangeType
+  quantityDelta Int
+  quantityAfter Int
+  changedBy     String
+  requestId     String?
+  notes         String?
+  createdAt     DateTime        @default(now())
+
+  @@index([itemId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestId   String?
+  request     Request?         @relation(fields: [requestId], references: [id])
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  emailSent   Boolean          @default(false)
+  emailSentAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  ipAddress String
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

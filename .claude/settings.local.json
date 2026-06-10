@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"d:\\\\Programming\\\\GoDigitify\\\\sviet-inventory-management\\\\stock-warden\" -Force)",
+      "Bash(Select-Object Name, FullName)"
+    ]
+  }
+}
