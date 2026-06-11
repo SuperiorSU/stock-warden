@@ -25,6 +25,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return apiError(new NotFoundError('Invoice not available.'))
   }
 
+  const [adminUser, inventoryManagerUser] = await Promise.all([
+    request.adminId ? prisma.user.findUnique({ where: { id: request.adminId }, select: { name: true, designation: true } }) : null,
+    request.inventoryManagerId ? prisma.user.findUnique({ where: { id: request.inventoryManagerId }, select: { name: true } }) : null,
+  ])
+
   const pdfBuffer = await renderInvoicePdf({
     invoiceNumber: request.invoiceNumber,
     processedAt: request.processedAt ?? new Date(),
@@ -32,8 +37,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     userName: request.user.name,
     userDepartment: request.user.department,
     userEmployeeId: request.user.employeeId,
-    adminName: request.adminId ?? 'Admin',
-    adminDesignation: null,
+    adminName: adminUser?.name ?? 'Admin',
+    adminDesignation: adminUser?.designation ?? null,
+    inventoryManagerName: inventoryManagerUser?.name ?? 'Inventory Manager',
     adminNotes: request.adminNotes ?? null,
     items: request.items.map((entry) => ({
       id: entry.id,

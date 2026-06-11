@@ -34,41 +34,38 @@ export async function GET(req: Request) {
   const cacheKey = `admin:stats:items:${sessionYear}:${itemId ?? "all"}`;
 
   const data = await cached(cacheKey, 300, async () => {
-    const items = await prisma.inventoryItem.findMany({
-      where: {
-        sessionYear,
-        ...(itemId ? { id: itemId } : {}),
-      },
-      select: { id: true, name: true, totalQuantity: true, availableQty: true },
-    });
+    type TotalsRow = { itemId: string; totalRequested: number; totalFulfilled: number; totalRejected: number };
 
-    const totals = itemId
-      ? await prisma.$queryRaw<
-          { itemId: string; totalRequested: number; totalFulfilled: number; totalRejected: number }[]
-        >`
-          SELECT
-            ri."itemId" as "itemId",
-            COALESCE(SUM(ri."quantityReq"), 0) as "totalRequested",
-            COALESCE(SUM(CASE WHEN r.status = 'APPROVED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalFulfilled",
-            COALESCE(SUM(CASE WHEN r.status = 'REJECTED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalRejected"
-          FROM "RequestItem" ri
-          JOIN "Request" r ON r.id = ri."requestId"
-          WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" = ${itemId}
-          GROUP BY ri."itemId";
-        `
-      : await prisma.$queryRaw<
-          { itemId: string; totalRequested: number; totalFulfilled: number; totalRejected: number }[]
-        >`
-          SELECT
-            ri."itemId" as "itemId",
-            COALESCE(SUM(ri."quantityReq"), 0) as "totalRequested",
-            COALESCE(SUM(CASE WHEN r.status = 'APPROVED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalFulfilled",
-            COALESCE(SUM(CASE WHEN r.status = 'REJECTED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalRejected"
-          FROM "RequestItem" ri
-          JOIN "Request" r ON r.id = ri."requestId"
-          WHERE r."sessionYear" = ${sessionYear}
-          GROUP BY ri."itemId";
-        `;
+    // Run items + totals in parallel regardless of itemId
+    const [items, totals] = await Promise.all([
+      prisma.inventoryItem.findMany({
+        where: { sessionYear, ...(itemId ? { id: itemId } : {}) },
+        select: { id: true, name: true, totalQuantity: true, availableQty: true },
+      }),
+      itemId
+        ? prisma.$queryRaw<TotalsRow[]>`
+            SELECT
+              ri."itemId" as "itemId",
+              COALESCE(SUM(ri."quantityReq"), 0) as "totalRequested",
+              COALESCE(SUM(CASE WHEN r.status = 'APPROVED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalFulfilled",
+              COALESCE(SUM(CASE WHEN r.status = 'REJECTED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalRejected"
+            FROM "RequestItem" ri
+            JOIN "Request" r ON r.id = ri."requestId"
+            WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" = ${itemId}
+            GROUP BY ri."itemId";
+          `
+        : prisma.$queryRaw<TotalsRow[]>`
+            SELECT
+              ri."itemId" as "itemId",
+              COALESCE(SUM(ri."quantityReq"), 0) as "totalRequested",
+              COALESCE(SUM(CASE WHEN r.status = 'APPROVED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalFulfilled",
+              COALESCE(SUM(CASE WHEN r.status = 'REJECTED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalRejected"
+            FROM "RequestItem" ri
+            JOIN "Request" r ON r.id = ri."requestId"
+            WHERE r."sessionYear" = ${sessionYear}
+            GROUP BY ri."itemId";
+          `,
+    ]);
 
     const totalsMap = new Map(totals.map((row) => [row.itemId, row]));
 
@@ -95,29 +92,27 @@ export async function GET(req: Request) {
       | undefined;
 
     if (itemId) {
-      const monthly = await prisma.$queryRaw<
-        { bucket: Date; qty: number }[]
-      >`
-        SELECT date_trunc('month', r."createdAt") as bucket,
-          COALESCE(SUM(ri."quantityReq"), 0) as qty
-        FROM "RequestItem" ri
-        JOIN "Request" r ON r.id = ri."requestId"
-        WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" = ${itemId}
-        GROUP BY bucket
-        ORDER BY bucket ASC;
-      `;
-
-      const quarterly = await prisma.$queryRaw<
-        { bucket: Date; qty: number }[]
-      >`
-        SELECT date_trunc('quarter', r."createdAt") as bucket,
-          COALESCE(SUM(ri."quantityReq"), 0) as qty
-        FROM "RequestItem" ri
-        JOIN "Request" r ON r.id = ri."requestId"
-        WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" = ${itemId}
-        GROUP BY bucket
-        ORDER BY bucket ASC;
-      `;
+      // Monthly and quarterly series are independent — run in parallel
+      const [monthly, quarterly] = await Promise.all([
+        prisma.$queryRaw<{ bucket: Date; qty: number }[]>`
+          SELECT date_trunc('month', r."createdAt") as bucket,
+            COALESCE(SUM(ri."quantityReq"), 0) as qty
+          FROM "RequestItem" ri
+          JOIN "Request" r ON r.id = ri."requestId"
+          WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" = ${itemId}
+          GROUP BY bucket
+          ORDER BY bucket ASC;
+        `,
+        prisma.$queryRaw<{ bucket: Date; qty: number }[]>`
+          SELECT date_trunc('quarter', r."createdAt") as bucket,
+            COALESCE(SUM(ri."quantityReq"), 0) as qty
+          FROM "RequestItem" ri
+          JOIN "Request" r ON r.id = ri."requestId"
+          WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" = ${itemId}
+          GROUP BY bucket
+          ORDER BY bucket ASC;
+        `,
+      ]);
 
       usageSeries = {
         monthly: monthly.map((row) => ({

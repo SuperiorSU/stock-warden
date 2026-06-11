@@ -38,51 +38,48 @@ export async function GET(req: Request) {
     if (dateFrom) where.approvedAt.gte = new Date(dateFrom)
     if (dateTo) where.approvedAt.lte = new Date(dateTo)
 
-    const total = await prisma.expenditureRecord.aggregate({ _sum: { totalAmount: true } })
+    const categoryFilter = category
+      ? Prisma.sql`AND "category" = ${category}`
+      : Prisma.empty
+
+    // All five queries are independent — run in parallel
+    const [total, byCategoryRaw, seriesMonthly, seriesYearly, topItems] = await Promise.all([
+      prisma.expenditureRecord.aggregate({ _sum: { totalAmount: true } }),
+      prisma.expenditureRecord.groupBy({
+        by: ['category'],
+        where,
+        _sum: { totalAmount: true },
+        _count: { itemId: true },
+      }),
+      prisma.$queryRaw<any[]>`
+        SELECT to_char("approvedAt", 'YYYY-MM') as month, SUM("totalAmount") as amount
+        FROM "ExpenditureRecord"
+        WHERE "sessionYear" = ${sessionYear} AND "isReversed" = false
+        ${categoryFilter}
+        GROUP BY month ORDER BY month
+      `,
+      prisma.$queryRaw<any[]>`
+        SELECT to_char("approvedAt", 'YYYY') as year, SUM("totalAmount") as amount
+        FROM "ExpenditureRecord"
+        WHERE "sessionYear" = ${sessionYear} AND "isReversed" = false
+        ${categoryFilter}
+        GROUP BY year ORDER BY year
+      `,
+      prisma.expenditureRecord.groupBy({
+        by: ['itemId', 'itemName'],
+        where,
+        _sum: { totalAmount: true },
+        orderBy: { _sum: { totalAmount: 'desc' } },
+        take: 10,
+      }),
+    ])
+
     const totalExpenditure = toNumber(total._sum.totalAmount) ?? 0
-
-    // By category
-    const byCategoryRaw = await prisma.expenditureRecord.groupBy({
-      by: ['category'],
-      where,
-      _sum: { totalAmount: true },
-      _count: { itemId: true },
-    })
-
     const byCategory = byCategoryRaw.map((b) => ({
       category: b.category,
       totalAmount: toNumber(b._sum.totalAmount) ?? 0,
       itemCount: b._count.itemId,
     }))
-
-    const categoryFilter = category
-      ? Prisma.sql`AND "category" = ${category}`
-      : Prisma.empty
-
-    // Series
-    const seriesMonthly = await prisma.$queryRaw<any[]>`
-      SELECT to_char("approvedAt", 'YYYY-MM') as month, SUM("totalAmount") as amount
-      FROM "ExpenditureRecord"
-      WHERE "sessionYear" = ${sessionYear} AND "isReversed" = false
-      ${categoryFilter}
-      GROUP BY month ORDER BY month
-    `
-
-    const seriesYearly = await prisma.$queryRaw<any[]>`
-      SELECT to_char("approvedAt", 'YYYY') as year, SUM("totalAmount") as amount
-      FROM "ExpenditureRecord"
-      WHERE "sessionYear" = ${sessionYear} AND "isReversed" = false
-      ${categoryFilter}
-      GROUP BY year ORDER BY year
-    `
-
-    const topItems = await prisma.expenditureRecord.groupBy({
-      by: ['itemId','itemName'],
-      where,
-      _sum: { totalAmount: true },
-      orderBy: { _sum: { totalAmount: 'desc' } },
-      take: 10,
-    })
 
     return {
       totalExpenditure,

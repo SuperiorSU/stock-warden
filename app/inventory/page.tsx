@@ -26,23 +26,23 @@ export default function InventoryPage() {
   const handleNotify = async (item: InventoryItem) => {
     try {
       await api.post(`/inventory/items/${item.id}/alert`, { message: 'Out of stock alert' })
-      toast.success('Admin notified')
+      toast.success('Stock alert sent to admin.')
     } catch (err: any) {
       if (err.response?.status === 429) {
-        toast.error('You already sent an alert recently')
+        toast.error('You already sent an alert for this item recently. Please wait before sending another.')
       } else {
-        toast.error('Failed to notify admin')
+        toast.error('Could not send the alert. Please try again.')
       }
     }
   }
 
   const handleAdd = (item: InventoryItem) => {
     if (cart.items.length >= 10) {
-      toast.error('Maximum 10 items per request')
+      toast.error('You can add up to 10 items per request.')
       return
     }
     cart.addItem(item)
-    toast.success('Added to request')
+    toast.success('Item added to your request.')
     setIsCartOpen(true)
   }
 
@@ -53,14 +53,14 @@ export default function InventoryPage() {
         items: cart.items.map(i => ({ itemId: i.item.id, quantity: i.quantity })),
         notes: cart.notes
       })
-      toast.success('Request submitted successfully')
+      toast.success('Request submitted! Awaiting admin review.')
       cart.clear()
       setIsCartOpen(false)
     } catch (err: any) {
       if (err.response?.status === 409) {
-        toast.error('You already have an open request for these items')
+        toast.error('You already have a pending request. Wait for it to be processed before submitting another.')
       } else {
-        toast.error('Failed to submit request')
+        toast.error('Could not submit your request. Please try again.')
       }
     }
   }

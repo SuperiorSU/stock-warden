@@ -157,19 +157,19 @@ function RequestDrawer({ request, onClose, onSuccess }: { request: any; onClose:
       setAllocSaved(true)
       setTimeout(() => setAllocSaved(false), 4000)
     },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Failed to save allocations'),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Could not save quantity changes. Please try again.'),
   })
 
   const approveMutation = useMutation({
     mutationFn: () => api.patch(`/admin/requests/${request.id}/approve`, { adminNotes }),
-    onSuccess: () => { toast.success('Request forwarded to inventory manager'); onSuccess() },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Failed to approve request'),
+    onSuccess: () => { toast.success('Request approved and forwarded to the inventory manager.'); onSuccess() },
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Could not approve this request. Please try again.'),
   })
 
   const rejectMutation = useMutation({
     mutationFn: () => api.patch(`/admin/requests/${request.id}/reject`, { adminNotes }),
-    onSuccess: () => { toast.success('Request rejected successfully'); onSuccess() },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Failed to reject request'),
+    onSuccess: () => { toast.success('Request rejected. The requester has been notified.'); onSuccess() },
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Could not reject this request. Please try again.'),
   })
 
   const isActionable = request.status === 'REQUESTED'

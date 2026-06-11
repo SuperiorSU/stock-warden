@@ -30,6 +30,7 @@ interface InvoicePayload {
   adminName: string;
   adminDesignation?: string | null;
   adminNotes?: string | null;
+  inventoryManagerName: string;
   items: InvoiceItem[];
   collegeName: string;
   collegeAddress: string;
@@ -81,9 +82,16 @@ export async function renderInvoicePdf(payload: InvoicePayload) {
           </View>
         ) : null}
 
-        <View style={{ marginTop: 24 }}>
-          <Text style={styles.meta}>Authorized by: {payload.adminName}</Text>
-          <Text style={styles.meta}>{payload.adminDesignation ?? ""}</Text>
+        <View style={{ marginTop: 24, flexDirection: "row", gap: 40 }}>
+          <View>
+            <Text style={styles.meta}>Approved by (Admin)</Text>
+            <Text style={{ fontSize: 11 }}>{payload.adminName}</Text>
+            {payload.adminDesignation ? <Text style={styles.meta}>{payload.adminDesignation}</Text> : null}
+          </View>
+          <View>
+            <Text style={styles.meta}>Allocated by (Inventory Manager)</Text>
+            <Text style={{ fontSize: 11 }}>{payload.inventoryManagerName}</Text>
+          </View>
         </View>
 
         <Text style={{ marginTop: 24, fontSize: 9, color: "#aaa" }}>

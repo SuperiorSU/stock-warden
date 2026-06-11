@@ -42,6 +42,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   // Invalidate caches
   await invalidatePattern(`inventory:item:${id}`)
   await invalidatePattern(`admin:stats:items:${existing.sessionYear}:*`)
+  await invalidatePattern('admin:inventory:*')
 
   return apiSuccess({ id: updated.id, unitPrice: updated.unitPrice, currency: updated.currency })
 }

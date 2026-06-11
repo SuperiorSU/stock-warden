@@ -9,6 +9,7 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { AdminInventoryStaleSchema } from "@/lib/validation/admin";
+import { invalidatePattern } from "@/lib/cache/redis";
 
 export async function PATCH(
   req: Request,
@@ -68,6 +69,8 @@ export async function PATCH(
 
     return result;
   });
+
+  await invalidatePattern("admin:inventory:*");
 
   return apiSuccess(updated);
 }

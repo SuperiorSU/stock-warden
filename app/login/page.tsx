@@ -37,7 +37,7 @@ export default function LoginPage() {
       const channel = new BroadcastChannel('cims-auth')
       channel.postMessage({ type: 'LOGIN' })
 
-      toast.success('Logged in successfully')
+      toast.success('Welcome back! You are now signed in.')
 
       if (role === 'SUPER_ADMIN') {
         router.push('/super-admin/overview')

@@ -42,12 +42,12 @@ function CreateStaffModal({ onClose }: { onClose: () => void }) {
   const createMutation = useMutation({
     mutationFn: () => api.post('/admin/users/create', form),
     onSuccess: () => {
-      toast.success('Staff account created successfully')
+      toast.success('Staff account created. The user can now log in.')
       queryClient.invalidateQueries({ queryKey: ['admin-pending-users'] })
       onClose()
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Failed to create account')
+      toast.error(err.response?.data?.error?.message || 'Could not create the account. Please check the details and try again.')
     },
   })
 
@@ -287,21 +287,21 @@ export default function AdminUsersPage() {
   const approveMutation = useMutation({
     mutationFn: async (userId: string) => api.patch(`/admin/users/${userId}/approve`),
     onSuccess: () => {
-      toast.success('User approved successfully')
+      toast.success('User approved. They can now access the system.')
       queryClient.invalidateQueries({ queryKey: ['admin-pending-users'] })
       closeModal()
     },
-    onError: () => toast.error('Failed to approve user'),
+    onError: () => toast.error('Could not approve this user. Please try again.'),
   })
 
   const rejectMutation = useMutation({
     mutationFn: async (userId: string) => api.delete(`/admin/users/${userId}/reject`),
     onSuccess: () => {
-      toast.success('User rejected and removed')
+      toast.success('Registration rejected and removed.')
       queryClient.invalidateQueries({ queryKey: ['admin-pending-users'] })
       closeModal()
     },
-    onError: () => toast.error('Failed to reject user'),
+    onError: () => toast.error('Could not reject this registration. Please try again.'),
   })
 
   const openModal = (user: PendingUser, action: 'approve' | 'reject') => {

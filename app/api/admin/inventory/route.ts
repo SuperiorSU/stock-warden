@@ -14,6 +14,23 @@ import { ApiError } from "@/lib/errors";
 import { slugify, withSlugSuffix } from "@/lib/utils/slug";
 import { writeAuditLog } from "@/lib/audit/log";
 import { uploadItemImageToDrive } from "@/lib/storage/drive";
+import { cached, invalidatePattern } from "@/lib/cache/redis";
+
+const adminInventorySelect = {
+  id: true,
+  name: true,
+  category: true,
+  unit: true,
+  availableQty: true,
+  totalQuantity: true,
+  imageUrl: true,
+  unitPrice: true,
+  currency: true,
+  isStale: true,
+  isActive: true,
+  isHiddenFromUsers: true,
+  createdAt: true,
+} as const;
 
 async function parseInventoryCreateRequest(req: Request) {
   const contentType = req.headers.get("content-type") ?? "";
@@ -22,6 +39,7 @@ async function parseInventoryCreateRequest(req: Request) {
     const formData = await req.formData();
     const imageFile = formData.get("imageFile");
 
+    const rawUnitPrice = formData.get("unitPrice")
     return {
       body: {
         name: String(formData.get("name") ?? "").trim(),
@@ -31,6 +49,7 @@ async function parseInventoryCreateRequest(req: Request) {
         totalQuantity: Number(formData.get("totalQuantity") ?? 0),
         sessionYear: Number(formData.get("sessionYear") ?? 0),
         imageUrl: String(formData.get("imageUrl") ?? "").trim() || undefined,
+        unitPrice: rawUnitPrice !== null && rawUnitPrice !== "" ? Number(rawUnitPrice) : undefined,
       },
       imageFile: imageFile instanceof File && imageFile.size > 0 ? imageFile : null,
     };
@@ -98,30 +117,33 @@ export async function GET(req: Request) {
     ...(hidden === "true" ? { isHiddenFromUsers: true } : hidden === "false" ? { isHiddenFromUsers: false } : {}),
   };
 
-  const page = await paginateWithCursor(
-    (args) =>
-      prisma.inventoryItem.findMany({
-        where,
-        take: args.take,
-        cursor: args.cursor,
-        skip: args.skip,
-        orderBy: { createdAt: "desc" },
-      }),
-    () => prisma.inventoryItem.count({ where }),
-    { cursor: decodedCursor?.id, limit }
-  );
+  const cacheKey = `admin:inventory:q=${q ?? ""}:cat=${category ?? ""}:yr=${sessionYear ?? ""}:avail=${availability ?? ""}:stale=${isStale ?? ""}:active=${isActive ?? ""}:hidden=${hidden ?? ""}:cur=${cursor ?? ""}:lim=${limit}`;
 
-  const lastItem = page.items[page.items.length - 1] as
-    | { id: string; createdAt: Date }
-    | undefined;
-  const nextCursor = lastItem ? encodeCursor(lastItem.id, lastItem.createdAt) : null;
+  const result = await cached(cacheKey, 120, async () => {
+    const page = await paginateWithCursor(
+      (args) =>
+        prisma.inventoryItem.findMany({
+          where,
+          take: args.take,
+          cursor: args.cursor,
+          skip: args.skip,
+          orderBy: { createdAt: "desc" },
+          select: adminInventorySelect,
+        }),
+      () => prisma.inventoryItem.count({ where }),
+      { cursor: decodedCursor?.id, limit }
+    );
 
-  return apiSuccess(page.items, {
-    limit,
-    total: page.total,
-    hasMore: page.hasMore,
-    nextCursor,
+    const lastItem = page.items[page.items.length - 1] as { id: string; createdAt: Date } | undefined;
+    const nextCursor = lastItem ? encodeCursor(lastItem.id, lastItem.createdAt) : null;
+
+    return {
+      items: page.items,
+      meta: { limit, total: page.total, hasMore: page.hasMore, nextCursor },
+    };
   });
+
+  return apiSuccess(result.items, result.meta);
 }
 
 export async function POST(req: Request) {
@@ -194,6 +216,8 @@ export async function POST(req: Request) {
     entityId: created.id,
     metadata: { name: created.name },
   });
+
+  await invalidatePattern("admin:inventory:*");
 
   return apiSuccess(created);
 }

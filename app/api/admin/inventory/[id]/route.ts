@@ -11,6 +11,7 @@ import {
 import { AdminInventoryUpdateSchema } from "@/lib/validation/admin";
 import { writeAuditLog } from "@/lib/audit/log";
 import { uploadItemImageToDrive, extractDriveFileId, deleteFileFromDrive } from "@/lib/storage/drive";
+import { invalidatePattern } from "@/lib/cache/redis";
 
 async function parseInventoryUpdateRequest(req: Request) {
   const contentType = req.headers.get("content-type") ?? "";
@@ -19,6 +20,7 @@ async function parseInventoryUpdateRequest(req: Request) {
     const formData = await req.formData();
     const imageFile = formData.get("imageFile");
 
+    const rawUnitPrice = formData.get("unitPrice")
     return {
       body: {
         name: String(formData.get("name") ?? "").trim() || undefined,
@@ -29,6 +31,7 @@ async function parseInventoryUpdateRequest(req: Request) {
           ? undefined
           : Number(formData.get("totalQuantity")),
         imageUrl: String(formData.get("imageUrl") ?? "").trim() || undefined,
+        unitPrice: rawUnitPrice !== null && rawUnitPrice !== "" ? Number(rawUnitPrice) : undefined,
       },
       imageFile: imageFile instanceof File && imageFile.size > 0 ? imageFile : null,
     };
@@ -75,15 +78,8 @@ export async function PUT(
     return apiError(new NotFoundError("Item not found."));
   }
 
-  // INVENTORY_MANAGER can only update totalQuantity and imageUrl
-  if (user.role === 'INVENTORY_MANAGER') {
-    const allowed = ['totalQuantity', 'imageUrl']
-    const hasDisallowedField = Object.keys(parsed.data).some(
-      (k) => parsed.data[k as keyof typeof parsed.data] !== undefined && !allowed.includes(k)
-    )
-    if (hasDisallowedField) {
-      return apiError(new ForbiddenError('Inventory Managers can only update quantity and image.'))
-    }
+  if (!['INVENTORY_MANAGER', 'ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+    return apiError(new ForbiddenError('Insufficient permissions to update inventory items.'))
   }
 
   let newFileName = imageFile?.name || `${item.slug}.png`
@@ -155,6 +151,8 @@ export async function PUT(
     entityId: id,
     metadata: parsed.data,
   });
+
+  await invalidatePattern("admin:inventory:*");
 
   return apiSuccess(updated);
 }

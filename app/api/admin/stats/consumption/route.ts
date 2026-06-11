@@ -36,31 +36,36 @@ export async function GET(req: Request) {
 
     const whereClause = Prisma.join(filters, ' AND ')
 
-    const seriesMonthly = await prisma.$queryRaw<{ month: string; units: number }[]>`
-      SELECT to_char("createdAt", 'YYYY-MM') as month, SUM("quantityDelta" * -1) as units
-      FROM "StockHistory" sh
-      JOIN "InventoryItem" ii ON ii.id = sh."itemId"
-      WHERE ${whereClause}
-      GROUP BY month ORDER BY month
-    `
+    // All three queries are independent — run in parallel
+    const byCategoryFilters = Prisma.join(
+      [Prisma.sql`sh."changeType" = 'FULFILLED'`, Prisma.sql`ii."sessionYear" = ${sessionYear}`, ...(category ? [Prisma.sql`ii."category" = ${category}`] : [])],
+      ' AND '
+    )
 
-    const seriesYearly = await prisma.$queryRaw<{ year: string; units: number }[]>`
-      SELECT to_char("createdAt", 'YYYY') as year, SUM("quantityDelta" * -1) as units
-      FROM "StockHistory" sh
-      JOIN "InventoryItem" ii ON ii.id = sh."itemId"
-      WHERE ${whereClause}
-      GROUP BY year ORDER BY year
-    `
-
-    // By category totals
-    const byCategory = await prisma.$queryRaw<{ category: string; units: number; expenditure: number | null }[]>`
-      SELECT ii."category" as category, SUM(sh."quantityDelta" * -1) as units, SUM(COALESCE(er."totalAmount",0)) as expenditure
-      FROM "StockHistory" sh
-      JOIN "InventoryItem" ii ON ii.id = sh."itemId"
-      LEFT JOIN "ExpenditureRecord" er ON er."itemId" = ii.id
-      WHERE ${Prisma.join([Prisma.sql`sh."changeType" = 'FULFILLED'`, Prisma.sql`ii."sessionYear" = ${sessionYear}`, ...(category ? [Prisma.sql`ii."category" = ${category}`] : [])], ' AND ')}
-      GROUP BY ii."category"
-    `
+    const [seriesMonthly, seriesYearly, byCategory] = await Promise.all([
+      prisma.$queryRaw<{ month: string; units: number }[]>`
+        SELECT to_char("createdAt", 'YYYY-MM') as month, SUM("quantityDelta" * -1) as units
+        FROM "StockHistory" sh
+        JOIN "InventoryItem" ii ON ii.id = sh."itemId"
+        WHERE ${whereClause}
+        GROUP BY month ORDER BY month
+      `,
+      prisma.$queryRaw<{ year: string; units: number }[]>`
+        SELECT to_char("createdAt", 'YYYY') as year, SUM("quantityDelta" * -1) as units
+        FROM "StockHistory" sh
+        JOIN "InventoryItem" ii ON ii.id = sh."itemId"
+        WHERE ${whereClause}
+        GROUP BY year ORDER BY year
+      `,
+      prisma.$queryRaw<{ category: string; units: number; expenditure: number | null }[]>`
+        SELECT ii."category" as category, SUM(sh."quantityDelta" * -1) as units, SUM(COALESCE(er."totalAmount",0)) as expenditure
+        FROM "StockHistory" sh
+        JOIN "InventoryItem" ii ON ii.id = sh."itemId"
+        LEFT JOIN "ExpenditureRecord" er ON er."itemId" = ii.id
+        WHERE ${byCategoryFilters}
+        GROUP BY ii."category"
+      `,
+    ])
 
     const totalUnits = seriesMonthly.reduce((s, r) => s + Number(r.units), 0)
     const totalExpenditure = byCategory.reduce((s, r) => s + Number(r.expenditure || 0), 0)

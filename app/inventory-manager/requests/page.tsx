@@ -71,14 +71,14 @@ export default function InventoryManagerRequestsPage() {
       return api.patch(`/inventory-manager/requests/${selectedRequest.id}/confirm`, { notes: managerNotes })
     },
     onSuccess: () => {
-      toast.success('Request confirmed and inventory updated')
+      toast.success('Request confirmed. Inventory updated and requester notified.')
       queryClient.invalidateQueries({ queryKey: ['im-all-requests'] })
       queryClient.invalidateQueries({ queryKey: ['im-pending-requests'] })
       setSelectedRequest(null)
       setPendingAction(null)
       setManagerNotes('')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Failed to confirm request'),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Could not confirm this request. Please check stock levels and try again.'),
   })
 
   const cancelMutation = useMutation({
@@ -87,14 +87,14 @@ export default function InventoryManagerRequestsPage() {
       return api.patch(`/inventory-manager/requests/${selectedRequest.id}/cancel`, { notes: managerNotes })
     },
     onSuccess: () => {
-      toast.success('Request cancelled')
+      toast.success('Request cancelled. No inventory changes were made.')
       queryClient.invalidateQueries({ queryKey: ['im-all-requests'] })
       queryClient.invalidateQueries({ queryKey: ['im-pending-requests'] })
       setSelectedRequest(null)
       setPendingAction(null)
       setManagerNotes('')
     },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Failed to cancel request'),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Could not cancel this request. Please try again.'),
   })
 
   const isMutating = confirmMutation.isPending || cancelMutation.isPending

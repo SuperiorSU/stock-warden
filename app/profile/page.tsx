@@ -34,10 +34,10 @@ export default function ProfilePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-profile'] })
       setIsEditing(false)
-      toast.success('Profile updated successfully')
+      toast.success('Profile information saved.')
     },
     onError: () => {
-      toast.error('Failed to update profile')
+      toast.error('Could not update your profile. Please try again.')
     }
   })
 

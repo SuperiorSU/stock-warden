@@ -23,14 +23,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return apiError(new NotFoundError('Receipt not available.'))
   }
 
+  const [adminUser, inventoryManagerUser] = await Promise.all([
+    request.adminId ? prisma.user.findUnique({ where: { id: request.adminId }, select: { name: true } }) : null,
+    request.inventoryManagerId ? prisma.user.findUnique({ where: { id: request.inventoryManagerId }, select: { name: true } }) : null,
+  ])
+
   const pdfBuffer = await renderReceiptPdf({
     receiptNumber: request.receiptNumber,
     processedAt: request.processedAt ?? new Date(),
     sessionYear: request.sessionYear,
     issuedToName: request.user.name,
     issuedToDepartment: request.user.department,
-    adminName: request.adminId ?? 'Admin',
+    adminName: adminUser?.name ?? 'Admin',
     adminNotes: request.adminNotes ?? null,
+    inventoryManagerName: inventoryManagerUser?.name ?? 'Inventory Manager',
     items: request.items.map((entry) => ({
       id: entry.id,
       name: entry.item.name,

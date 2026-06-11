@@ -8,6 +8,7 @@ export const AdminInventoryCreateSchema = z.object({
   totalQuantity: z.number().int().min(1).max(10000),
   sessionYear: z.number().int(),
   imageUrl: z.string().url().optional(),
+  unitPrice: z.number().positive().max(999999.99).optional(),
 });
 
 export const AdminInventoryUpdateSchema = z.object({
@@ -17,6 +18,7 @@ export const AdminInventoryUpdateSchema = z.object({
   unit: z.string().min(1).max(50).optional(),
   totalQuantity: z.number().int().min(1).max(10000).optional(),
   imageUrl: z.string().url().optional(),
+  unitPrice: z.number().positive().max(999999.99).optional(),
 });
 
 export const AdminInventoryStaleSchema = z.object({

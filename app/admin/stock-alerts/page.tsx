@@ -29,10 +29,10 @@ export default function StockAlertsPage() {
     mutationFn: (id: string) => api.patch(`/admin/stock-alerts/${id}/resolve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-stock-alerts'] })
-      toast.success('Alert marked as resolved')
+      toast.success('Stock alert marked as resolved.')
       setSelectedAlert(null)
     },
-    onError: () => toast.error('Failed to resolve alert')
+    onError: () => toast.error('Could not resolve this alert. Please try again.')
   })
 
   const handleResolveConfirm = () => {

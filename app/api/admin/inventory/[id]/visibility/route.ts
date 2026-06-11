@@ -57,6 +57,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Invalidate caches
   await invalidatePattern('inventory:items:list:*')
   await invalidatePattern(`inventory:item:${id}`)
+  await invalidatePattern('admin:inventory:*')
 
   return apiSuccess({ id: updated.id, isHiddenFromUsers: updated.isHiddenFromUsers, hiddenAt: updated.hiddenAt })
 }

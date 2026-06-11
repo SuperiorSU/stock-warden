@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db/prisma";
+import { cached } from "@/lib/cache/redis";
 
 export interface RequestUser {
   id: string;
@@ -18,28 +19,22 @@ export async function getRequestUser(): Promise<RequestUser | null> {
   }
 
   try {
-    // Rehydrate from DB to avoid stale JWT/header identity after reseed/reset.
-    const dbUser = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        role: true,
-        email: true,
-        isActive: true,
-      },
-    });
+    // Cached 30s — eliminates one DB round-trip per API request while staying
+    // responsive to deactivations and role changes within a short window.
+    const dbUser = await cached(`user:auth:${id}`, 30, () =>
+      prisma.user.findUnique({
+        where: { id },
+        select: { id: true, role: true, email: true, isActive: true },
+      })
+    );
 
     if (!dbUser || !dbUser.isActive) {
       return null;
     }
 
-    return {
-      id: dbUser.id,
-      role: dbUser.role,
-      email: dbUser.email,
-    };
+    return { id: dbUser.id, role: dbUser.role, email: dbUser.email };
   } catch {
-    // DB unreachable — fall back to JWT header identity.
+    // DB or Redis unreachable — fall back to JWT header identity.
     return { id, role: headerRole, email: headerEmail };
   }
 }

@@ -1,13 +1,14 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api/client'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Upload, Package } from 'lucide-react'
 import Link from 'next/link'
+import { formatINR } from '@/lib/utils/format'
 
 const CATEGORY_OPTIONS = [
   'Consumables', 'Stationery', 'IT & Electronics', 'Furniture', 'Laboratory',
@@ -47,18 +48,27 @@ export default function IMAddItemPage() {
     unit: '',
     totalQuantity: 1,
     sessionYear: new Date().getFullYear(),
+    unitPrice: '',
   })
+
+  const totalValue = useMemo(() => {
+    const price = Number(form.unitPrice)
+    const qty = Number(form.totalQuantity)
+    if (!form.unitPrice || !Number.isFinite(price) || price <= 0) return null
+    if (!Number.isFinite(qty) || qty <= 0) return null
+    return price * qty
+  }, [form.unitPrice, form.totalQuantity])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const addMutation = useMutation({
     mutationFn: (payload: FormData) => api.post('/admin/inventory', payload),
     onSuccess: () => {
-      toast.success('Item added successfully')
+      toast.success('Item added to inventory.')
       router.push('/inventory-manager/items')
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || 'Failed to add item')
+      toast.error(err.response?.data?.error?.message || 'Could not add item. Please check the details and try again.')
     },
   })
 
@@ -75,6 +85,7 @@ export default function IMAddItemPage() {
     fd.append('unit', form.unit.trim())
     fd.append('totalQuantity', String(form.totalQuantity))
     fd.append('sessionYear', String(form.sessionYear))
+    if (form.unitPrice) fd.append('unitPrice', form.unitPrice)
     if (imageFile) fd.append('imageFile', imageFile)
     addMutation.mutate(fd)
   }
@@ -175,6 +186,33 @@ export default function IMAddItemPage() {
               className="w-full px-3 py-2 border border-[--border-default] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-black"
             />
           </div>
+        </div>
+
+        {/* Unit Price */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Unit Price (₹) <span className="text-[--ink-tertiary] font-normal">Optional</span>
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[--ink-secondary] text-sm">₹</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              max="999999.99"
+              value={form.unitPrice}
+              onChange={(e) => setForm({ ...form, unitPrice: e.target.value })}
+              placeholder="0.00"
+              className="w-full pl-7 pr-3 py-2 border border-[--border-default] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-black"
+            />
+          </div>
+          {totalValue !== null && (
+            <div className="mt-2 flex items-center justify-between bg-[--bg-subtle] rounded px-3 py-2 text-xs text-[--ink-secondary]">
+              <span>{form.totalQuantity} × ₹{Number(form.unitPrice).toFixed(2)}</span>
+              <span className="font-semibold text-[--ink-primary]">{formatINR(totalValue)}</span>
+            </div>
+          )}
+          <p className="mt-1 text-xs text-[--ink-tertiary]">Used for expenditure analytics.</p>
         </div>
 
         {/* Image upload */}

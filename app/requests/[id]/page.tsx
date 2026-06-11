@@ -31,10 +31,10 @@ export default function RequestDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['request', requestId] })
       queryClient.invalidateQueries({ queryKey: ['user-requests-all'] })
-      toast.success('Request cancelled successfully')
+      toast.success('Your request has been cancelled.')
       setConfirmAction(null)
     },
-    onError: () => toast.error('Failed to cancel request')
+    onError: () => toast.error('Could not cancel this request. Please try again.')
   })
 
   const reRequestMutation = useMutation({
@@ -42,10 +42,10 @@ export default function RequestDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['request', requestId] })
       queryClient.invalidateQueries({ queryKey: ['user-requests-all'] })
-      toast.success('Request resubmitted successfully')
+      toast.success('Request resubmitted for admin review.')
       setConfirmAction(null)
     },
-    onError: () => toast.error('Failed to resubmit request')
+    onError: () => toast.error('Could not resubmit this request. Please try again.')
   })
 
   const handleConfirm = () => {

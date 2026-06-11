@@ -107,28 +107,28 @@ export default function AdminInventoryPage() {
     mutationFn: ({ id, action }: { id: string; action: 'mark' | 'unmark' }) => api.patch(`/admin/inventory/${id}/stale`, { action }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] })
-      toast.success('Item status updated')
+      toast.success('Item status updated successfully.')
     },
-    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to update item')),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Could not update item status. Please try again.')),
   })
 
   const setVisibilityMutation = useMutation({
     mutationFn: ({ id, hidden }: { id: string; hidden: boolean }) => api.patch(`/admin/inventory/${id}/visibility`, { hidden }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] })
-      toast.success('Visibility updated')
+      toast.success('Item visibility updated.')
       setVisibilityAction(null)
     },
-    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to update visibility')),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Could not update item visibility. Please try again.')),
   })
 
   const setPriceMutation = useMutation({
     mutationFn: ({ id, unitPrice }: { id: string; unitPrice: number }) => api.put(`/admin/inventory/${id}/price`, { unitPrice, currency: 'INR' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] })
-      toast.success('Price updated')
+      toast.success('Unit price updated successfully.')
     },
-    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to update price')),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Could not update item price. Please try again.')),
   })
 
   return (
@@ -308,7 +308,7 @@ function handleSetPrice(item: any, setPriceMutation: { mutate: (payload: { id: s
   if (next === null) return
   const parsed = Number(next)
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    toast.error('Enter a valid positive price')
+    toast.error('Please enter a valid price greater than 0.')
     return
   }
   setPriceMutation.mutate({ id: item.id, unitPrice: Number(parsed.toFixed(2)) })
@@ -340,10 +340,10 @@ function AddItemModal({ onClose }: { onClose: () => void }) {
     mutationFn: (payload: FormData) => api.post('/admin/inventory', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] })
-      toast.success('Item added successfully')
+      toast.success('Item added to inventory.')
       onClose()
     },
-    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to add item')),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Could not add item. Please check the details and try again.')),
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -465,10 +465,10 @@ function EditItemModal({ item, onClose }: { item: any; onClose: () => void }) {
     mutationFn: (payload: FormData) => api.put(`/admin/inventory/${item.id}`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] })
-      toast.success('Item updated successfully')
+      toast.success('Item details updated successfully.')
       onClose()
     },
-    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Failed to update item')),
+    onError: (err: unknown) => toast.error(getErrorMessage(err, 'Could not update item. Please check the details and try again.')),
   })
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -32,11 +32,11 @@ export default function AdminSettingsPage() {
       return await api.put('/user/profile', data)
     },
     onSuccess: () => {
-      toast.success('Settings updated successfully')
+      toast.success('Profile settings saved.')
       queryClient.invalidateQueries({ queryKey: ['admin-profile'] })
     },
     onError: () => {
-      toast.error('Failed to update settings')
+      toast.error('Could not save settings. Please try again.')
     }
   })
 

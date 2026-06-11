@@ -30,6 +30,7 @@ interface ReceiptPayload {
   issuedToDepartment?: string | null;
   adminName: string;
   adminNotes?: string | null;
+  inventoryManagerName: string;
   items: ReceiptItem[];
   collegeName: string;
   collegeAddress: string;
@@ -82,8 +83,15 @@ export async function renderReceiptPdf(payload: ReceiptPayload) {
           </View>
         ) : null}
 
-        <View style={{ marginTop: 24 }}>
-          <Text style={styles.meta}>Authorized by: {payload.adminName}</Text>
+        <View style={{ marginTop: 24, flexDirection: "row", gap: 40 }}>
+          <View>
+            <Text style={styles.meta}>Approved by (Admin)</Text>
+            <Text style={{ fontSize: 11 }}>{payload.adminName}</Text>
+          </View>
+          <View>
+            <Text style={styles.meta}>Allocated by (Inventory Manager)</Text>
+            <Text style={{ fontSize: 11 }}>{payload.inventoryManagerName}</Text>
+          </View>
         </View>
       </Page>
     </Document>
