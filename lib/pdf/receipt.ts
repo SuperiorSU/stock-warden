@@ -17,6 +17,7 @@ interface ReceiptPayload {
   issuedToDepartment?: string | null
   adminName: string
   adminNotes?: string | null
+  inventoryManagerName: string
   items: ReceiptItem[]
   collegeName: string
   collegeAddress: string
@@ -143,8 +144,11 @@ export async function renderReceiptPdf(payload: ReceiptPayload): Promise<Buffer>
 
     // Signature
     const sigY = doc.page.height - 120
-    doc.moveTo(350, sigY + 28).lineTo(50 + W, sigY + 28).strokeColor(ink).lineWidth(0.4).stroke()
+    doc.moveTo(50, sigY + 28).lineTo(240, sigY + 28).strokeColor(ink).lineWidth(0.4).stroke()
     doc.fontSize(9).fillColor(muted).font('Helvetica')
+    doc.text(`Allocated by: ${payload.inventoryManagerName}`, 50, sigY + 32, { width: 190, align: 'center' })
+
+    doc.moveTo(350, sigY + 28).lineTo(50 + W, sigY + 28).strokeColor(ink).lineWidth(0.4).stroke()
     doc.text(`Authorised by: ${payload.adminName}`, 350, sigY + 32, { width: 200, align: 'center' })
 
     // Footer
