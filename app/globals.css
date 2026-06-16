@@ -4,220 +4,305 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Tailwind v4 theme — maps CSS vars to utility classes ────────────────── */
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  /* Use the next/font-loaded variable so font-swap and size-adjust apply */
+  /* Fonts */
+  --font-sans:    var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono:    var(--font-geist-mono), ui-monospace, Consolas, monospace;
   --font-display: var(--font-dm-serif), Georgia, 'Times New Roman', serif;
 
-  --color-canvas: var(--bg-canvas);
-  --color-surface: var(--bg-surface);
-  --color-subtle: var(--bg-subtle);
-  --color-muted: var(--bg-muted);
+  /* ── Canvas / surface colours ───────────────────────────────────────────── */
+  --color-canvas:         var(--canvas);
+  --color-surface:        var(--surface);
+  --color-sunken:         var(--surface-sunken);
 
-  --color-ink-primary: var(--ink-primary);
-  --color-ink-secondary: var(--ink-secondary);
-  --color-ink-tertiary: var(--ink-tertiary);
-  --color-ink-disabled: var(--ink-disabled);
+  /* ── Ink ────────────────────────────────────────────────────────────────── */
+  --color-ink-1:          var(--ink-1);
+  --color-ink-2:          var(--ink-2);
+  --color-ink-3:          var(--ink-3);
+  --color-ink-4:          var(--ink-4);
 
-  --color-accent-primary: var(--accent-primary);
-  --color-accent-primary-bg: var(--accent-primary-bg);
-  --color-accent-hover: var(--accent-hover);
+  /* ── Accent ─────────────────────────────────────────────────────────────── */
+  --color-accent:         var(--accent);
+  --color-accent-mid:     var(--accent-mid);
+  --color-accent-tint:    var(--accent-tint);
+  --color-accent-text:    var(--accent-text);
 
-  --color-status-requested: var(--status-requested);
-  --color-status-approved: var(--status-approved);
-  --color-status-rejected: var(--status-rejected);
-  --color-status-pending: var(--status-pending);
-  --color-status-cancelled: var(--status-cancelled);
+  /* ── Status ─────────────────────────────────────────────────────────────── */
+  --color-status-positive:       var(--status-positive);
+  --color-status-warning:        var(--status-warning);
+  --color-status-negative:       var(--status-negative);
+  --color-status-neutral:        var(--status-neutral);
+  --color-status-info:           var(--status-info);
+  --color-status-positive-tint:  var(--status-positive-tint);
+  --color-status-warning-tint:   var(--status-warning-tint);
+  --color-status-negative-tint:  var(--status-negative-tint);
+  --color-status-neutral-tint:   var(--status-neutral-tint);
+  --color-status-info-tint:      var(--status-info-tint);
 
-  --color-border-default: var(--border-default);
-  --color-border-strong: var(--border-strong);
+  /* ── Border ─────────────────────────────────────────────────────────────── */
+  --color-border:         var(--border);
+  --color-border-strong:  var(--border-strong);
+  --color-border-focus:   var(--border-focus);
 
-  /* ── Fluid typography scale ──────────────────────────────────────────────
-     clamp(min, preferred-vw, max) — scales between 360px and 1920px
-     ────────────────────────────────────────────────────────────────────── */
-  --font-size-xs:      clamp(0.6875rem, 0.65rem + 0.2vw,  0.75rem);
-  --font-size-xs--line-height: 1.5;
-  --font-size-sm:      clamp(0.8125rem, 0.78rem + 0.2vw,  0.875rem);
-  --font-size-sm--line-height: 1.5;
-  --font-size-base:    clamp(0.9375rem, 0.9rem  + 0.25vw, 1rem);
-  --font-size-base--line-height: 1.6;
-  --font-size-lg:      clamp(1rem,      0.95rem + 0.35vw, 1.125rem);
-  --font-size-lg--line-height: 1.55;
-  --font-size-xl:      clamp(1.125rem,  1rem    + 0.5vw,  1.25rem);
-  --font-size-xl--line-height: 1.5;
-  --font-size-2xl:     clamp(1.25rem,   1.1rem  + 0.7vw,  1.5rem);
-  --font-size-2xl--line-height: 1.4;
-  --font-size-3xl:     clamp(1.5rem,    1.2rem  + 1.2vw,  1.875rem);
-  --font-size-3xl--line-height: 1.3;
-  --font-size-4xl:     clamp(1.75rem,   1.3rem  + 1.8vw,  2.25rem);
-  --font-size-4xl--line-height: 1.2;
-  --font-size-display: clamp(2rem,      1.5rem  + 2.5vw,  3.5rem);
-  --font-size-display--line-height: 1.1;
+  /* ── Fluid type scale (pixel names map to classes: text-13, text-14, etc.) ─ */
+  --font-size-10: clamp(0.5625rem, 0.54rem + 0.1vw,  0.625rem);
+  --font-size-10--line-height: 1.4;
+  --font-size-11: clamp(0.625rem,  0.60rem + 0.1vw,  0.6875rem);
+  --font-size-11--line-height: 1.4;
+  --font-size-12: clamp(0.6875rem, 0.66rem + 0.15vw, 0.75rem);
+  --font-size-12--line-height: 1.5;
+  --font-size-13: clamp(0.75rem,   0.72rem + 0.15vw, 0.8125rem);
+  --font-size-13--line-height: 1.5;
+  --font-size-14: clamp(0.8125rem, 0.78rem + 0.2vw,  0.875rem);
+  --font-size-14--line-height: 1.5;
+  --font-size-16: clamp(0.9375rem, 0.9rem  + 0.2vw,  1rem);
+  --font-size-16--line-height: 1.55;
+  --font-size-18: clamp(1rem,      0.96rem + 0.25vw, 1.125rem);
+  --font-size-18--line-height: 1.5;
+  --font-size-20: clamp(1.1rem,    1.0rem  + 0.4vw,  1.25rem);
+  --font-size-20--line-height: 1.4;
+  --font-size-24: clamp(1.3rem,    1.15rem + 0.6vw,  1.5rem);
+  --font-size-24--line-height: 1.3;
+  --font-size-28: clamp(1.5rem,    1.3rem  + 0.8vw,  1.75rem);
+  --font-size-28--line-height: 1.25;
+  --font-size-32: clamp(1.75rem,   1.5rem  + 1.0vw,  2rem);
+  --font-size-32--line-height: 1.2;
+  --font-size-40: clamp(2rem,      1.7rem  + 1.5vw,  2.5rem);
+  --font-size-40--line-height: 1.1;
 
-  /* xs breakpoint */
-  --breakpoint-xs: 400px;
+  /* ── Border radius ──────────────────────────────────────────────────────── */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* ── Shadows ────────────────────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+
+  /* ── Breakpoints ────────────────────────────────────────────────────────── */
+  --breakpoint-xs:  400px;
+  --breakpoint-sm:  640px;
+  --breakpoint-md:  768px;
+  --breakpoint-lg:  1024px;
+  --breakpoint-xl:  1280px;
+  --breakpoint-2xl: 1440px;
+
+  /* ── Transition easing ──────────────────────────────────────────────────── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Design tokens (:root) ───────────────────────────────────────────────── */
 :root {
-  /* Base — warm off-white, not pure white */
-  --bg-canvas:      #F7F5F2;
-  --bg-surface:     #FFFFFF;
-  --bg-subtle:      #F0EDE8;
-  --bg-muted:       #E8E4DE;
+  /* Canvas */
+  --canvas:          #F7F7F8;
+  --surface:         #FFFFFF;
+  --surface-raised:  #FFFFFF;
+  --surface-sunken:  #F2F2F3;
 
-  /* Ink — warm dark, not pure black */
-  --ink-primary:    #1C1917;
-  --ink-secondary:  #44403C;
-  --ink-tertiary:   #78716C;
-  --ink-disabled:   #A8A29E;
+  /* Ink */
+  --ink-1:           #0C0C0D;
+  --ink-2:           #52525B;
+  --ink-3:           #A1A1AA;
+  --ink-4:           #D4D4D8;
 
-  /* Accent — deep forest green (institutional, not tech-startup) */
-  --accent-primary:    #166534;
-  --accent-primary-bg: #DCFCE7;
-  --accent-hover:      #14532D;
+  /* Accent */
+  --accent:          #16603A;
+  --accent-mid:      #1D7A4A;
+  --accent-tint:     #EBF5EF;
+  --accent-text:     #14532D;
 
-  /* Status semantic colors */
-  --status-requested:  #B45309;  /* amber */
-  --status-approved:   #166534;  /* green */
-  --status-rejected:   #B91C1C;  /* red */
-  --status-pending:    #1D4ED8;  /* blue */
-  --status-cancelled:  #71717A;  /* gray */
+  /* Status */
+  --status-positive:       #16A34A;
+  --status-warning:        #D97706;
+  --status-negative:       #DC2626;
+  --status-neutral:        #52525B;
+  --status-info:           #2563EB;
+  --status-positive-tint:  #DCFCE7;
+  --status-warning-tint:   #FEF3C7;
+  --status-negative-tint:  #FEE2E2;
+  --status-neutral-tint:   #F4F4F5;
+  --status-info-tint:      #DBEAFE;
 
   /* Borders */
-  --border-default:  #E7E5E4;
-  --border-strong:   #A8A29E;
+  --border:          #E4E4E7;
+  --border-strong:   #A1A1AA;
+  --border-focus:    #16603A;
 
-  /* Layout */
-  --nav-height: 56px;
+  /* Sidebar geometry */
+  --sidebar-expanded:   220px;
+  --sidebar-collapsed:   56px;
+  --nav-height:           52px;
 
-  /* Radii */
-  --radius-base: 4px;
+  /* Metric display numbers */
+  --metric-sm:  clamp(1.3rem,  1.15rem + 0.6vw, 1.5rem);
+  --metric-md:  clamp(1.75rem, 1.5rem  + 1.0vw, 2rem);
+  --metric-lg:  clamp(2rem,    1.7rem  + 1.5vw, 2.5rem);
+
+  /* Motion */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-micro:     120ms;
+  --dur-fast:      180ms;
+  --dur-std:       240ms;
+  --dur-enter:     300ms;
+  --dur-sidebar:   260ms;
+
+  /* ── Backward-compat aliases (existing pages reference these names) ─────── */
+  --bg-canvas:          var(--canvas);
+  --bg-surface:         var(--surface);
+  --bg-subtle:          var(--surface-sunken);
+  --bg-muted:           var(--surface-sunken);
+  --ink-primary:        var(--ink-1);
+  --ink-secondary:      var(--ink-2);
+  --ink-tertiary:       var(--ink-3);
+  --ink-disabled:       var(--ink-4);
+  --accent-primary:     var(--accent);
+  --accent-primary-bg:  var(--accent-tint);
+  --accent-hover:       var(--accent-mid);
+  --border-default:     var(--border);
+  --status-requested:   var(--status-info);
+  --status-approved:    var(--status-positive);
+  --status-rejected:    var(--status-negative);
+  --status-pending:     var(--status-warning);
+  --status-cancelled:   var(--status-neutral);
+  --radius-base:        var(--radius-md);
+}
+
+/* ── Global resets ───────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01", "kern";
 }
 
 body {
-  background-color: #F7F5F2;
-  background-color: var(--bg-canvas);
-  color: #1C1917;
-  color: var(--ink-primary);
-  font-family: 'Geist', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  font-family: var(--font-sans);
+  background: var(--canvas);
+  color: var(--ink-1);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(0.8125rem, 0.78rem + 0.2vw, 0.875rem);
+  line-height: 1.5;
+  min-height: 100dvh;
 }
 
-/* ── Heading constraints ────────────────────────────────────────────────── */
+/* Heading balance */
 h1, h2, h3 {
   max-width: 22ch;
   text-wrap: balance;
 }
+th, .no-wrap-cap { max-width: none; }
 
-th, .no-wrap-cap {
-  max-width: none;
+/* Tabular numerics everywhere numbers appear */
+.tabular, [class*="font-mono"], td, th, .metric {
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── Focus rings ────────────────────────────────────────────────────────── */
+/* Focus — keyboard only */
 :focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--border-focus);
   outline-offset: 2px;
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-sm);
 }
+:focus:not(:focus-visible) { outline: none; }
 
-:focus:not(:focus-visible) {
-  outline: none;
-}
+/* Thin scrollbars */
+::-webkit-scrollbar              { width: 4px; height: 4px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--border-strong); }
 
-/* ── Page enter animation ───────────────────────────────────────────────── */
+/* ── Animations ──────────────────────────────────────────────────────────── */
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.page-enter { animation: page-enter var(--dur-enter) var(--ease-out) both; }
 
-.page-enter {
-  animation: page-enter 200ms ease-out both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page-enter { animation: none; }
-}
-
-/* ── Skeleton shimmer ───────────────────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -200% center; }
   100% { background-position:  200% center; }
 }
-
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--bg-muted) 25%,
-    var(--bg-subtle) 50%,
-    var(--bg-muted) 75%
+    var(--surface-sunken) 25%,
+    var(--canvas) 50%,
+    var(--surface-sunken) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: var(--radius-base);
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius-sm);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .skeleton { animation: none; background: var(--bg-muted); }
-}
+/* Delta indicators */
+.delta-up   { color: var(--status-positive); }
+.delta-down { color: var(--status-negative); }
+.delta-flat { color: var(--ink-3); }
 
-/* ── Mobile card-stack tables ───────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .stack-table table  { display: block; }
-  .stack-table thead  { display: none; }
-  .stack-table tbody  { display: block; }
-  .stack-table tr {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px 12px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-default);
-    background: var(--bg-surface);
-  }
-  .stack-table tr:hover { background: var(--bg-subtle); }
-
-  .stack-table td {
-    display: flex;
-    flex-direction: column;
-    font-size: var(--font-size-sm);
-  }
-  .stack-table td::before {
-    content: attr(data-label);
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    color: var(--ink-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 2px;
-  }
-  .stack-table td[data-full] {
-    grid-column: 1 / -1;
-  }
-}
-
-/* ── Background refetch indicator ──────────────────────────────────────── */
+/* Background refetch bar */
 .refetch-bar {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   height: 2px;
-  background: var(--accent-primary);
+  background: var(--accent);
   opacity: 0.7;
   animation: shimmer 1.4s ease-in-out infinite;
   background-size: 200% 100%;
 }
 
-/* ── Existing utilities ─────────────────────────────────────────────────── */
-.sticky {
-  position: -webkit-sticky;
-  position: sticky;
-}
-
+/* Utility */
+.sticky { position: -webkit-sticky; position: sticky; }
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
   max-height: 2.5em;
+}
+
+/* ── Mobile stack tables ─────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .stack-table table { display: block; }
+  .stack-table thead { display: none; }
+  .stack-table tbody { display: block; }
+  .stack-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stack-table td {
+    display: flex;
+    flex-direction: column;
+    font-size: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+  }
+  .stack-table td::before {
+    content: attr(data-label);
+    font-size: clamp(0.625rem, 0.60rem + 0.1vw, 0.6875rem);
+    font-weight: 600;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+  }
+  .stack-table td[data-full] { grid-column: 1 / -1; }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .skeleton { animation: none; background: var(--surface-sunken); }
 }

@@ -23,6 +23,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   compress: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns', '@tanstack/react-query'],
+  },
   async headers() {
     return [
       {

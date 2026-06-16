@@ -74,6 +74,7 @@ export async function GET(req: Request) {
       return {
         itemId: item.id,
         name: item.name,
+        totalQuantity: item.totalQuantity,
         totalRequested: Number(stats?.totalRequested ?? 0),
         totalFulfilled: Number(stats?.totalFulfilled ?? 0),
         totalRejected: Number(stats?.totalRejected ?? 0),

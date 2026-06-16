@@ -1,25 +1,49 @@
-import React from 'react'
+import { cn } from '@/lib/utils'
 
 export type RequestStatus = 'REQUESTED' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
 
-const STATUS_CONFIG = {
-  REQUESTED: { label: 'Requested',  color: 'text-amber-700  bg-amber-50  border-amber-200' },
-  PENDING:   { label: 'Awaiting Inventory Manager',    color: 'text-blue-700   bg-blue-50   border-blue-200' },
-  APPROVED:  { label: 'Approved',   color: 'text-green-700  bg-green-50  border-green-200' },
-  REJECTED:  { label: 'Rejected',   color: 'text-red-700    bg-red-50    border-red-200' },
-  CANCELLED: { label: 'Cancelled',  color: 'text-zinc-500   bg-zinc-50   border-zinc-200' },
+const CONFIG: Record<RequestStatus, { label: string; cls: string; dot: string }> = {
+  REQUESTED: {
+    label: 'Requested',
+    cls:  'bg-status-info-tint text-status-info',
+    dot:  'bg-status-info',
+  },
+  PENDING: {
+    label: 'Awaiting IM',
+    cls:  'bg-status-warning-tint text-status-warning',
+    dot:  'bg-status-warning',
+  },
+  APPROVED: {
+    label: 'Approved',
+    cls:  'bg-status-positive-tint text-status-positive',
+    dot:  'bg-status-positive',
+  },
+  REJECTED: {
+    label: 'Rejected',
+    cls:  'bg-status-negative-tint text-status-negative',
+    dot:  'bg-status-negative',
+  },
+  CANCELLED: {
+    label: 'Cancelled',
+    cls:  'bg-status-neutral-tint text-status-neutral',
+    dot:  'bg-status-neutral',
+  },
 }
 
 export function StatusBadge({ status }: { status: RequestStatus }) {
-  const { label, color } = STATUS_CONFIG[status] || STATUS_CONFIG.REQUESTED;
+  const cfg = CONFIG[status] ?? CONFIG.REQUESTED
   return (
     <span
       role="status"
-      aria-label={`Status: ${label}`}
-      className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded text-xs font-medium border ${color}`}
+      aria-label={`Status: ${cfg.label}`}
+      className={cn(
+        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm',
+        'text-12 font-medium leading-none',
+        cfg.cls
+      )}
     >
-      <span className="size-1.5 rounded-full bg-current" aria-hidden />
-      {label}
+      <span className={cn('size-1.5 rounded-full shrink-0', cfg.dot)} aria-hidden />
+      {cfg.label}
     </span>
   )
 }
