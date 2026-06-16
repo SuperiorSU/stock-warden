@@ -91,7 +91,8 @@ export default function SAConsumptionPage() {
   const [sortBy, setSortBy]         = useState<SortBy>('amount')
   const [order, setOrder]           = useState<Order>('desc')
   const [tab, setTab]               = useState<TabKey>('items')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [expandedId, setExpandedId]       = useState<string | null>(null)
+  const [expandedEmpId, setExpandedEmpId] = useState<string | null>(null)
 
   // ── Consumption queries ───────────────────────────────────────────────────
   const { data: itemsStats, isLoading: isItemsLoading } = useQuery({
@@ -127,6 +128,15 @@ export default function SAConsumptionPage() {
     sortBy,
     order,
   }
+
+  // ── Employee-analytics query ──────────────────────────────────────────────
+  const { data: userStatsData, isLoading: isUserStatsLoading } = useQuery({
+    queryKey: ['sa-user-stats', sessionYear, granularity],
+    queryFn: () =>
+      api.get('/admin/stats/users', { params: { sessionYear, granularity } }).then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: tab === 'employees',
+  })
 
   const { data: analyticsData, isLoading: isAnalyticsLoading, isFetching: isAnalyticsFetching } = useQuery({
     queryKey: ['sa-item-analytics', itemFilters],
@@ -165,6 +175,15 @@ export default function SAConsumptionPage() {
 
   const analyticsItems: ItemRow[]       = analyticsData?.data?.items   ?? []
   const analyticsSummary: ItemsSummary  = analyticsData?.data?.summary
+
+  interface EmpRow {
+    userId: string; userName: string; department: string | null
+    approvedRequests: number; totalUnits: number; totalAmount: number
+  }
+  const empRows: EmpRow[]    = userStatsData?.byUser ?? []
+  const topEmployees         = empRows.slice(0, 8).map((e) => ({ name: e.userName, amount: e.totalAmount }))
+  const empTotalSpent        = empRows.reduce((s, e) => s + e.totalAmount, 0)
+  const empTotalUnits        = empRows.reduce((s, e) => s + e.totalUnits, 0)
 
   const isConsumptionLoading =
     isItemsLoading || isRequestsLoading || statusQueries.some((q) => q.isLoading)
@@ -558,12 +577,198 @@ export default function SAConsumptionPage() {
         )}
 
         {tab === 'employees' && (
-          <div className="bg-surface rounded-lg border border-border p-6 text-14 text-ink-3">
-            Expand any item row in the &ldquo;By Item&rdquo; tab to view its employee breakdown,
-            or use the Employees page to filter by item.
+          <div className="space-y-5">
+            {/* Summary strip */}
+            {!isUserStatsLoading && empRows.length > 0 && (
+              <div className="flex flex-wrap gap-6 px-4 py-3 bg-sunken rounded-lg">
+                <SummaryStat label="Employees"    value={String(empRows.length)} />
+                <SummaryStat label="Total Spent"  value={formatINR(empTotalSpent)} />
+                <SummaryStat label="Total Units"  value={empTotalUnits.toLocaleString('en-IN')} />
+              </div>
+            )}
+
+            {/* Top employees bar chart */}
+            {!isUserStatsLoading && topEmployees.length > 0 && (
+              <div className="bg-surface p-6 rounded-lg border border-border shadow-sm">
+                <h3 className="text-14 font-semibold text-ink-1 mb-5">Top Employees by Spend</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <BarChart data={topEmployees} layout="vertical" margin={{ left: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
+                      <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--ink-3)' }}
+                        tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false}
+                        tick={{ fontSize: 12, fill: 'var(--ink-3)' }} width={120} />
+                      <RechartsTooltip
+                        cursor={{ fill: 'var(--surface-sunken)' }}
+                        contentStyle={{ borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}
+                        formatter={(v: number) => [formatINR(v), 'Amount']}
+                      />
+                      <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        {topEmployees.map((_: any, i: number) => (
+                          <Cell key={`emp-cell-${i}`} fill={ITEM_COLORS[i % ITEM_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Employee table */}
+            <div className="relative bg-surface rounded-lg border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-14 text-left whitespace-nowrap">
+                  <thead className="border-b border-border">
+                    <tr>
+                      {['Employee', 'Department', 'Approved Requests', 'Units Received', 'Total Spent', ''].map((h) => (
+                        <th key={h} className="px-6 py-2.5 text-12 font-semibold text-ink-3 uppercase tracking-[0.04em]">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {isUserStatsLoading ? (
+                      Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} cols={6} />)
+                    ) : empRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-14 text-ink-3">
+                          No expenditure data for this session year.
+                        </td>
+                      </tr>
+                    ) : (
+                      empRows.map((emp) => (
+                        <React.Fragment key={emp.userId}>
+                          <tr
+                            className="hover:bg-sunken transition-colors duration-100 cursor-pointer"
+                            onClick={() => setExpandedEmpId((id) => id === emp.userId ? null : emp.userId)}
+                          >
+                            <td className="px-6 py-3 font-medium text-ink-1">{emp.userName}</td>
+                            <td className="px-6 py-3 text-ink-2">{emp.department ?? '—'}</td>
+                            <td className="px-6 py-3 tabular">{emp.approvedRequests}</td>
+                            <td className="px-6 py-3 tabular">{emp.totalUnits.toLocaleString('en-IN')}</td>
+                            <td className="px-6 py-3 font-semibold tabular text-status-positive">
+                              {formatINR(emp.totalAmount)}
+                            </td>
+                            <td className="px-6 py-3">
+                              {expandedEmpId === emp.userId
+                                ? <ChevronDown  size={15} className="text-ink-3" />
+                                : <ChevronRight size={15} className="text-ink-3" />
+                              }
+                            </td>
+                          </tr>
+                          {expandedEmpId === emp.userId && (
+                            <tr key={`${emp.userId}-detail`}>
+                              <td colSpan={6} className="p-0">
+                                <SAEmployeeItemBreakdown
+                                  userId={emp.userId}
+                                  userName={emp.userName}
+                                  sessionYear={sessionYear}
+                                  monthFrom={monthFrom || undefined}
+                                  monthTo={monthTo   || undefined}
+                                />
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </section>
+    </div>
+  )
+}
+
+// ── Expandable per-employee item breakdown ────────────────────────────────────
+function SAEmployeeItemBreakdown({
+  userId, userName, sessionYear, monthFrom, monthTo,
+}: {
+  userId:      string
+  userName:    string
+  sessionYear: number
+  monthFrom?:  string
+  monthTo?:    string
+}) {
+  const params = new URLSearchParams({ sessionYear: String(sessionYear) })
+  if (monthFrom) params.set('monthFrom', monthFrom)
+  if (monthTo)   params.set('monthTo',   monthTo)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['sa-emp-approved', userId, sessionYear, monthFrom, monthTo],
+    queryFn: () =>
+      api.get(`/super-admin/employees/${userId}/approved?${params}`).then((r) => r.data),
+    staleTime: 3 * 60 * 1000,
+  })
+
+  const records: {
+    id: string; itemName: string; category: string | null
+    unitPrice: number; quantityFulfilled: number; totalAmount: number
+    approvedAt: string; inventoryProcessedAt: string | null
+    adminName: string | null; imName: string | null
+  }[] = data?.data?.records ?? []
+
+  const summary = data?.data?.summary
+
+  return (
+    <div className="px-6 py-4 bg-canvas border-t border-border space-y-3">
+      <p className="text-12 font-semibold text-ink-3 uppercase tracking-wide">
+        Items received by {userName}
+      </p>
+      {isLoading ? (
+        <div className="text-13 text-ink-3">Loading…</div>
+      ) : records.length === 0 ? (
+        <div className="text-13 text-ink-3">No approved allocations for this employee in this period.</div>
+      ) : (
+        <div className="overflow-x-auto rounded border border-border">
+          <table className="w-full text-13 text-left whitespace-nowrap">
+            <thead className="bg-sunken border-b border-border">
+              <tr>
+                {['Item', 'Category', 'Units', 'Unit Price', 'Total', 'Date Approved', 'Date Allocated', 'Approved By', 'Alloc. By (IM)'].map((h) => (
+                  <th key={h} className="px-4 py-2 font-semibold text-ink-3 text-12 uppercase tracking-[0.04em]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border bg-surface">
+              {records.map((r) => (
+                <tr key={r.id}>
+                  <td className="px-4 py-2 font-medium text-ink-1">{r.itemName}</td>
+                  <td className="px-4 py-2 text-ink-2">{r.category ?? '—'}</td>
+                  <td className="px-4 py-2 tabular">{r.quantityFulfilled}</td>
+                  <td className="px-4 py-2 tabular">₹{r.unitPrice.toFixed(2)}</td>
+                  <td className="px-4 py-2 font-semibold text-status-positive tabular">
+                    ₹{r.totalAmount.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2">{format(new Date(r.approvedAt), 'd MMM yyyy')}</td>
+                  <td className="px-4 py-2">
+                    {r.inventoryProcessedAt ? format(new Date(r.inventoryProcessedAt), 'd MMM yyyy') : '—'}
+                  </td>
+                  <td className="px-4 py-2">{r.adminName ?? '—'}</td>
+                  <td className="px-4 py-2">{r.imName ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+            {summary && (
+              <tfoot>
+                <tr className="border-t border-border bg-sunken">
+                  <td colSpan={2} className="px-4 py-2 font-semibold text-ink-2">
+                    Total ({summary.totalRecords} allocations)
+                  </td>
+                  <td className="px-4 py-2 font-semibold tabular">{summary.totalUnits}</td>
+                  <td />
+                  <td className="px-4 py-2 font-bold text-status-positive tabular">
+                    ₹{summary.totalAmount.toFixed(2)}
+                  </td>
+                  <td colSpan={4} />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      )}
     </div>
   )
 }
