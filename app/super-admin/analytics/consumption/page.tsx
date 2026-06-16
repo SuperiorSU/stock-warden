@@ -602,7 +602,7 @@ export default function SAConsumptionPage() {
                       <RechartsTooltip
                         cursor={{ fill: 'var(--surface-sunken)' }}
                         contentStyle={{ borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}
-                        formatter={(v: number) => [formatINR(v), 'Amount']}
+                        formatter={(v) => [formatINR(Number(v ?? 0)), 'Amount']}
                       />
                       <Bar dataKey="amount" radius={[0, 4, 4, 0]} maxBarSize={28}>
                         {topEmployees.map((_: any, i: number) => (
