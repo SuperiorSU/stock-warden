@@ -180,7 +180,7 @@ export default function SAConsumptionPage() {
     userId: string; userName: string; department: string | null
     approvedRequests: number; totalUnits: number; totalAmount: number
   }
-  const empRows: EmpRow[]    = userStatsData?.byUser ?? []
+  const empRows: EmpRow[]    = userStatsData?.data?.byUser ?? []
   const topEmployees         = empRows.slice(0, 8).map((e) => ({ name: e.userName, amount: e.totalAmount }))
   const empTotalSpent        = empRows.reduce((s, e) => s + e.totalAmount, 0)
   const empTotalUnits        = empRows.reduce((s, e) => s + e.totalUnits, 0)
