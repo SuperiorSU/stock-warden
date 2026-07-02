@@ -6,14 +6,15 @@ import { Menu, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface TopNavProps {
-  title:         string
-  onMenuToggle:  () => void
-  unreadCount?:  number
-  breadcrumbs?:  { label: string; href?: string }[]
+  title:               string
+  onMenuToggle:        () => void
+  unreadCount?:        number
+  breadcrumbs?:        { label: string; href?: string }[]
+  hideNotifications?:  boolean
 }
 
 export const TopNav = memo(function TopNav({
-  title, onMenuToggle, unreadCount, breadcrumbs
+  title, onMenuToggle, unreadCount, breadcrumbs, hideNotifications
 }: TopNavProps) {
   const [scrolled, setScrolled] = useState(false)
 
@@ -72,19 +73,21 @@ export const TopNav = memo(function TopNav({
       </div>
 
       {/* Notification bell */}
-      <Link
-        href="/notifications"
-        className="relative p-1.5 rounded-md text-ink-3 hover:text-ink-1 hover:bg-sunken transition-colors"
-        aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}
-      >
-        <Bell size={18} strokeWidth={1.75} />
-        {unreadCount && unreadCount > 0 ? (
-          <span
-            className="absolute top-0.5 right-0.5 size-[7px] rounded-full bg-status-negative"
-            aria-hidden
-          />
-        ) : null}
-      </Link>
+      {!hideNotifications && (
+        <Link
+          href="/notifications"
+          className="relative p-1.5 rounded-md text-ink-3 hover:text-ink-1 hover:bg-sunken transition-colors"
+          aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+        >
+          <Bell size={18} strokeWidth={1.75} />
+          {unreadCount && unreadCount > 0 ? (
+            <span
+              className="absolute top-0.5 right-0.5 size-[7px] rounded-full bg-status-negative"
+              aria-hidden
+            />
+          ) : null}
+        </Link>
+      )}
     </header>
   )
 })
