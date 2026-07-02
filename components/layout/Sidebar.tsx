@@ -60,10 +60,10 @@ const IM_NAV: NavItem[] = [
 
 const SA_NAV: NavItem[] = [
   { label: 'Overview',    href: '/super-admin/overview',               icon: LayoutDashboard },
-  { label: 'Users',       href: '/super-admin/users',                  icon: Users },
+  { label: 'Items',       href: '/super-admin/items',                  icon: Activity },
   { label: 'Employees',   href: '/super-admin/employees',              icon: Users },
   { label: 'Expenditure', href: '/super-admin/analytics/expenditure',  icon: TrendingUp },
-  { label: 'Analytics',   href: '/super-admin/analytics/consumption',  icon: Activity },
+  { label: 'Users',       href: '/super-admin/users',                  icon: Users },
 ]
 
 const NAV_MAP: Record<string, NavItem[]> = {

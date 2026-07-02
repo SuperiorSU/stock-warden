@@ -1,4 +1,5 @@
 import { SAEmployeeExplorer } from '@/components/super-admin/SAEmployeeExplorer'
+import { SATopEmployeesSpend } from '@/components/super-admin/SATopEmployeesSpend'
 import { prisma } from '@/lib/db/prisma'
 
 async function getDepartments(): Promise<string[]> {
@@ -22,6 +23,8 @@ export default async function SAEmployeesPage() {
           Browse, filter, and export all employee stock requests.
         </p>
       </div>
+      <SATopEmployeesSpend />
+      <div className="border-t border-[--border-default]" />
       <SAEmployeeExplorer departments={departments} />
     </div>
   )

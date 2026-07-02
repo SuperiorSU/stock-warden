@@ -44,7 +44,7 @@ export async function GET(req: Request) {
 
     // All five queries are independent — run in parallel
     const [total, byCategoryRaw, seriesMonthly, seriesYearly, topItems] = await Promise.all([
-      prisma.expenditureRecord.aggregate({ _sum: { totalAmount: true } }),
+      prisma.expenditureRecord.aggregate({ where, _sum: { totalAmount: true } }),
       prisma.expenditureRecord.groupBy({
         by: ['category'],
         where,

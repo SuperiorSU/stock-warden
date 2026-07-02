@@ -71,7 +71,7 @@ export function SARequestItemBreakdown({ request }: { request: SARequest }) {
                   {item.quantityFul != null ? `${item.quantityFul} ${item.item.unit}` : '—'}
                 </td>
                 <td className="px-4 py-2">
-                  {item.unitPrice != null ? `₹${item.unitPrice.toFixed(2)}` : '—'}
+                  {item.unitPrice != null ? formatINR(item.unitPrice) : '—'}
                 </td>
                 <td className="px-4 py-2">
                   {item.lineTotal != null ? formatINR(item.lineTotal) : '—'}

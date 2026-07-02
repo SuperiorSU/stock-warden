@@ -33,6 +33,10 @@ export async function GET(req: Request) {
   const monthFrom = searchParams.get("monthFrom") || undefined;
   const monthTo   = searchParams.get("monthTo") || undefined;
   const category  = searchParams.get("category") || undefined;
+  const itemId    = searchParams.get("itemId") || undefined;
+
+  const dateFrom = monthFrom ? startOfMonth(parseISO(`${monthFrom}-01`)) : null;
+  const dateTo   = monthTo ? endOfMonth(parseISO(`${monthTo}-01`)) : null;
 
   const expenditureWhere: Prisma.ExpenditureRecordWhereInput = {
     sessionYear,
@@ -44,45 +48,75 @@ export async function GET(req: Request) {
       },
     }),
     ...(category && { category }),
+    ...(itemId && { itemId }),
   };
 
-  // Sheet 1: Item summary
-  const itemAggregates = await prisma.expenditureRecord.groupBy({
-    by: ["itemId", "itemName", "category"],
-    where: expenditureWhere,
-    _sum:   { totalAmount: true, quantityFulfilled: true },
-    _count: { requestId: true },
-    orderBy: { _sum: { totalAmount: "desc" } },
+  // Sheet 1: Item summary — sourced from the full catalog (not just items with
+  // expenditure) so the export matches the on-screen Items table 1:1.
+  const catalogItems = await prisma.inventoryItem.findMany({
+    where: {
+      sessionYear,
+      ...(itemId ? { id: itemId } : {}),
+      ...(category ? { category } : {}),
+    },
+    select: { id: true, name: true, category: true, totalQuantity: true, availableQty: true, unitPrice: true },
     take: EXPORT_CAP,
   });
+  const itemIds = catalogItems.map((i) => i.id);
 
-  const itemIds = itemAggregates.map((i) => i.itemId);
-  const stockSnapshot =
+  const [expenditureAggregates, requestTotalsRaw] = await Promise.all([
     itemIds.length > 0
-      ? await prisma.inventoryItem.findMany({
-          where: { id: { in: itemIds } },
-          select: { id: true, totalQuantity: true, availableQty: true, unitPrice: true },
+      ? prisma.expenditureRecord.groupBy({
+          by: ["itemId"],
+          where: { ...expenditureWhere, itemId: { in: itemIds } },
+          _sum:   { totalAmount: true, quantityFulfilled: true },
+          _count: { requestId: true },
         })
-      : [];
-  const stockMap = Object.fromEntries(stockSnapshot.map((s) => [s.id, s]));
+      : Promise.resolve([]),
+    itemIds.length > 0
+      ? prisma.$queryRaw<{ itemId: string; totalRequested: number; totalFulfilled: number; totalRejected: number }[]>`
+          SELECT
+            ri."itemId" as "itemId",
+            COALESCE(SUM(ri."quantityReq"), 0) as "totalRequested",
+            COALESCE(SUM(CASE WHEN r.status = 'APPROVED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalFulfilled",
+            COALESCE(SUM(CASE WHEN r.status = 'REJECTED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalRejected"
+          FROM "RequestItem" ri
+          JOIN "Request" r ON r.id = ri."requestId"
+          WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" IN (${Prisma.join(itemIds)})
+            ${dateFrom ? Prisma.sql`AND r."createdAt" >= ${dateFrom}` : Prisma.empty}
+            ${dateTo ? Prisma.sql`AND r."createdAt" <= ${dateTo}` : Prisma.empty}
+          GROUP BY ri."itemId";
+        `
+      : Promise.resolve([]),
+  ]);
+
+  const expenditureMap = Object.fromEntries(expenditureAggregates.map((e) => [e.itemId, e]));
+  const requestTotalsMap = Object.fromEntries(requestTotalsRaw.map((r) => [r.itemId, r]));
 
   const wb = XLSX.utils.book_new();
 
   const summarySheet = XLSX.utils.json_to_sheet(
-    itemAggregates.map((item) => {
-      const stock = stockMap[item.itemId];
+    catalogItems.map((item) => {
+      const spend = expenditureMap[item.id];
+      const totals = requestTotalsMap[item.id];
+      const totalStock = item.totalQuantity;
+      const remaining = item.availableQty;
+      const consumed = Math.max(0, totalStock - remaining);
+      const stockUsagePct = totalStock > 0 ? Math.round((consumed / totalStock) * 100) : 0;
       return {
-        "Item Name":          item.itemName,
+        "Item Name":          item.name,
         "Category":           item.category ?? "—",
-        "Total Spent (₹)":    Number(item._sum.totalAmount ?? 0),
-        "Qty Fulfilled":      Number(item._sum.quantityFulfilled ?? 0),
-        "Total Requests":     item._count.requestId,
-        "Stock Available":    stock?.availableQty ?? "—",
-        "Total Stock":        stock?.totalQuantity ?? "—",
-        "Unit Price (₹)":     stock?.unitPrice ? Number(stock.unitPrice) : "—",
-        "Inventory Value (₹)": stock?.unitPrice
-          ? Number(stock.unitPrice) * (stock?.totalQuantity ?? 0)
-          : "—",
+        "Total Stock":        totalStock,
+        "Total Requested":    Number(totals?.totalRequested ?? 0),
+        "Total Fulfilled":    Number(totals?.totalFulfilled ?? 0),
+        "Total Rejected":     Number(totals?.totalRejected ?? 0),
+        "Remaining Stock":    remaining,
+        "Stock Usage (%)":    stockUsagePct,
+        "Unit Price (₹)":     item.unitPrice ? Number(item.unitPrice) : "—",
+        "Total Spent (₹)":    Number(spend?._sum.totalAmount ?? 0),
+        "Qty Fulfilled (Spend)": Number(spend?._sum.quantityFulfilled ?? 0),
+        "Total Requests":     spend?._count.requestId ?? 0,
+        "Inventory Value (₹)": item.unitPrice ? Number(item.unitPrice) * totalStock : "—",
       };
     })
   );
