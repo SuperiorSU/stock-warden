@@ -8,7 +8,7 @@ import { PlusCircle } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const { data: profileData, isLoading: isLoadingProfile } = useQuery({
+  const { data: profileData, isLoading: isLoadingProfile, isError: isProfileError, refetch: refetchProfile } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
       const res = await api.get('/user/profile')
@@ -16,7 +16,7 @@ export default function DashboardPage() {
     }
   })
 
-  const { data: requestsData, isLoading: isLoadingRequests } = useQuery({
+  const { data: requestsData, isLoading: isLoadingRequests, isError: isRequestsError, refetch: refetchRequests } = useQuery({
     queryKey: ['user-requests', { limit: 5 }],
     queryFn: async () => {
       const res = await api.get('/user/requests?limit=5')
@@ -62,6 +62,18 @@ export default function DashboardPage() {
         <StatCard title="Pending" value={stats.pendingRequests} color="text-blue-700" />
         <StatCard title="Rejected" value={stats.rejectedRequests} color="text-red-700" />
       </div>
+
+      {(isProfileError || isRequestsError) && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Some dashboard data couldn&apos;t be loaded.</span>
+          <button
+            onClick={() => { if (isProfileError) refetchProfile(); if (isRequestsError) refetchRequests() }}
+            className="text-sm font-medium underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* RECENT REQUESTS */}
       <div className="bg-white rounded-lg border border-[--border-default] p-6 shadow-sm">

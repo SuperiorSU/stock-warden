@@ -67,6 +67,13 @@ export default function IMItemsPage() {
         </div>
       </div>
 
+      {inventoryQuery.isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Couldn&apos;t load inventory items.</span>
+          <button onClick={() => inventoryQuery.refetch()} className="text-sm font-medium underline">Retry</button>
+        </div>
+      )}
+
       <div className="bg-white border border-[--border-default] rounded-lg shadow-sm overflow-hidden">
         {inventoryQuery.isLoading ? (
           <div className="p-12 flex justify-center">

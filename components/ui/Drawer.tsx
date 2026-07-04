@@ -19,7 +19,21 @@ export function Drawer({ open, onClose, title, subtitle, children, className }: 
   useEffect(() => {
     if (!open) return
     panelRef.current?.focus()
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab' || !panelRef.current) return
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus()
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
@@ -29,7 +43,7 @@ export function Drawer({ open, onClose, title, subtitle, children, className }: 
       {/* Backdrop */}
       <div
         className={cn(
-          'fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]',
+          'fixed inset-0 z-45 bg-black/20 backdrop-blur-[1px]',
           'transition-opacity duration-300',
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         )}

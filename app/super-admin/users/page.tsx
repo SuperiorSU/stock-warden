@@ -1,6 +1,7 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api/client'
 import { Loader2 } from 'lucide-react'
 
@@ -16,24 +17,31 @@ interface UserRecord {
   createdAt: string
 }
 
+const PAGE_SIZE = 50
+
 export default function SuperAdminUsersPage() {
-  const { data, isLoading } = useQuery({
+  const usersQuery = useInfiniteQuery({
     queryKey: ['super-admin-users'],
-    queryFn: async () => {
-      const res = await api.get('/super-admin/users?limit=50')
-      return res.data.data as UserRecord[]
-    }
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const res = await api.get('/super-admin/users', { params: { cursor: pageParam, limit: PAGE_SIZE } })
+      return res.data as { data: UserRecord[]; meta?: { nextCursor?: string | null } }
+    },
+    getNextPageParam: (lastPage) => lastPage.meta?.nextCursor ?? undefined,
   })
 
-  if (isLoading) {
+  const users = useMemo(
+    () => usersQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [usersQuery.data]
+  )
+
+  if (usersQuery.isLoading) {
     return (
       <div className="p-12 flex justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-black" />
       </div>
     )
   }
-
-  const users = data || []
 
   return (
     <div className="space-y-6 page-enter">
@@ -43,6 +51,13 @@ export default function SuperAdminUsersPage() {
           <p className="text-sm text-[--ink-secondary]">View all registered users and administrators across the platform.</p>
         </div>
       </div>
+
+      {usersQuery.isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Couldn&apos;t load users.</span>
+          <button onClick={() => usersQuery.refetch()} className="text-sm font-medium underline">Retry</button>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-[--border-default] overflow-hidden shadow-sm">
         {users.length === 0 ? (
@@ -101,6 +116,21 @@ export default function SuperAdminUsersPage() {
           </div>
         )}
       </div>
+
+      {users.length > 0 && (
+        <div className="flex items-center justify-between text-sm text-[--ink-secondary]">
+          <span>Showing {users.length} users</span>
+          {usersQuery.hasNextPage && (
+            <button
+              onClick={() => usersQuery.fetchNextPage()}
+              disabled={usersQuery.isFetchingNextPage}
+              className="px-4 py-2 border border-[--border-default] hover:bg-black hover:text-white transition duration-75 rounded-md font-medium disabled:opacity-50"
+            >
+              {usersQuery.isFetchingNextPage ? 'Loading...' : 'Load more'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

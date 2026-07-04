@@ -78,6 +78,7 @@ export default function AdminInventoryPage() {
   const [staleAction, setStaleAction] = useState<{ id: string; name: string; action: 'mark' | 'unmark' } | null>(null)
   const [visibilityAction, setVisibilityAction] = useState<{ id: string; name: string; hidden: boolean } | null>(null)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
+  const [priceAction, setPriceAction] = useState<InventoryItem | null>(null)
 
   const inventoryQuery = useInfiniteQuery({
     queryKey: ['admin-inventory', debouncedSearch],
@@ -108,6 +109,7 @@ export default function AdminInventoryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] })
       toast.success('Item status updated successfully.')
+      setStaleAction(null)
     },
     onError: (err: unknown) => toast.error(getErrorMessage(err, 'Could not update item status. Please try again.')),
   })
@@ -127,6 +129,7 @@ export default function AdminInventoryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-inventory'] })
       toast.success('Unit price updated successfully.')
+      setPriceAction(null)
     },
     onError: (err: unknown) => toast.error(getErrorMessage(err, 'Could not update item price. Please try again.')),
   })
@@ -213,7 +216,7 @@ export default function AdminInventoryPage() {
                       </td>
                       <td data-label="Actions" data-full className="px-6 py-3 text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <button onClick={() => handleSetPrice(item, setPriceMutation)} className="p-1.5 text-[--ink-secondary] hover:text-black hover:bg-green-100 rounded transition-colors" title="Set Price"><IndianRupee size={16} /></button>
+                          <button onClick={() => setPriceAction(item)} className="p-1.5 text-[--ink-secondary] hover:text-black hover:bg-green-100 rounded transition-colors" title="Set Price"><IndianRupee size={16} /></button>
                           <button onClick={() => setVisibilityAction({ id: item.id, name: item.name, hidden: !item.isHiddenFromUsers })} className="p-1.5 text-[--ink-secondary] hover:text-black hover:bg-green-100 rounded transition-colors" title={item.isHiddenFromUsers ? 'Unhide from users' : 'Hide from users'}>{item.isHiddenFromUsers ? <Eye size={16} /> : <EyeOff size={16} />}</button>
                           <button onClick={() => setEditingItem(item)} className="p-1.5 text-[--ink-secondary] hover:text-black hover:bg-green-100 rounded transition-colors" title="Edit"><Edit2 size={16} /></button>
                           <button onClick={() => setStaleAction({ id: item.id, name: item.name, action: item.isStale ? 'unmark' : 'mark' })} className="p-1.5 text-[--ink-secondary] hover:text-amber-700 hover:bg-amber-50 rounded transition-colors" title={item.isStale ? 'Unmark Stale' : 'Mark Stale'}><Archive size={16} /></button>
@@ -271,6 +274,75 @@ export default function AdminInventoryPage() {
         onConfirm={() => visibilityAction && setVisibilityMutation.mutate({ id: visibilityAction.id, hidden: visibilityAction.hidden })}
         onCancel={() => setVisibilityAction(null)}
       />
+
+      {priceAction && (
+        <PriceModal
+          item={priceAction}
+          isPending={setPriceMutation.isPending}
+          onSubmit={(unitPrice) => setPriceMutation.mutate({ id: priceAction.id, unitPrice })}
+          onClose={() => setPriceAction(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function PriceModal({
+  item, isPending, onSubmit, onClose,
+}: {
+  item: InventoryItem
+  isPending: boolean
+  onSubmit: (unitPrice: number) => void
+  onClose: () => void
+}) {
+  const [value, setValue] = useState(item.unitPrice != null ? String(Number(item.unitPrice)) : '')
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 999999.99) {
+      toast.error('Please enter a valid price between 0 and 999999.99.')
+      return
+    }
+    onSubmit(Number(parsed.toFixed(2)))
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-white rounded-lg shadow-xl">
+        <div className="p-6 border-b border-[--border-default]">
+          <h2 className="font-display text-xl font-bold">Set Unit Price</h2>
+          <p className="text-sm text-[--ink-secondary] mt-1">{item.name}</p>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Unit Price (₹)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[--ink-secondary] text-sm">₹</span>
+              <input
+                autoFocus
+                required
+                type="number"
+                min={0.01}
+                max={999999.99}
+                step="0.01"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="w-full pl-7 pr-3 py-2 border border-[--border-default] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-black"
+              />
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <button type="button" onClick={onClose} className="flex-1 py-2 border border-[--border-default] rounded-md font-medium hover:bg-[--bg-subtle]">
+              Cancel
+            </button>
+            <button type="submit" disabled={isPending} className="flex-1 py-2 bg-black text-white rounded-md font-medium hover:bg-[--accent-hover] disabled:opacity-50">
+              {isPending ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
@@ -302,17 +374,6 @@ function CatalogValueSummary({ items }: { items: InventoryItem[] }) {
   )
 }
 
-function handleSetPrice(item: any, setPriceMutation: { mutate: (payload: { id: string; unitPrice: number }) => void }) {
-  const current = item.unitPrice ? Number(item.unitPrice) : 0
-  const next = window.prompt(`Set unit price for ${item.name} (INR):`, String(current))
-  if (next === null) return
-  const parsed = Number(next)
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    toast.error('Please enter a valid price greater than 0.')
-    return
-  }
-  setPriceMutation.mutate({ id: item.id, unitPrice: Number(parsed.toFixed(2)) })
-}
 
 function AddItemModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient()
@@ -371,7 +432,7 @@ function AddItemModal({ onClose }: { onClose: () => void }) {
         <div className="p-6 border-b border-[--border-default]"><h2 className="font-display text-xl font-bold">Add New Item</h2></div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div><label className="block text-sm font-medium mb-1">Item Name</label><input required type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border rounded-md" /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Category</label>
               <select required value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-3 py-2 border rounded-md">
@@ -387,12 +448,12 @@ function AddItemModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Total Quantity</label>
               <input required type="number" min={1} value={formData.totalQuantity} onChange={(e) => setFormData({ ...formData, totalQuantity: Number.isNaN(Number(e.target.value)) ? 0 : Number(e.target.value) })} className="w-full px-3 py-2 border rounded-md" />
             </div>
-            <div><label className="block text-sm font-medium mb-1">Session Year</label><input required type="number" value={formData.sessionYear} onChange={(e) => setFormData({ ...formData, sessionYear: Number(e.target.value) })} className="w-full px-3 py-2 border rounded-md" /></div>
+            <div><label className="block text-sm font-medium mb-1">Session Year</label><input required type="number" min={2000} max={new Date().getFullYear() + 1} value={formData.sessionYear} onChange={(e) => setFormData({ ...formData, sessionYear: Number(e.target.value) })} className="w-full px-3 py-2 border rounded-md" /></div>
           </div>
           {/* Unit Price */}
           <div>
@@ -495,7 +556,7 @@ function EditItemModal({ item, onClose }: { item: any; onClose: () => void }) {
         <div className="p-6 border-b border-[--border-default]"><h2 className="font-display text-xl font-bold">Edit Item</h2></div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div><label className="block text-sm font-medium mb-1">Item Name</label><input required type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border rounded-md" /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Category</label>
               <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-3 py-2 border rounded-md">

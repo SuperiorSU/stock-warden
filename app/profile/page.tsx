@@ -75,7 +75,7 @@ export default function ProfilePage() {
               <button 
                 onClick={() => {
                   setIsEditing(false)
-                  setFormData({ name: user.name || '', phoneNumber: user.phoneNumber || '' })
+                  setFormData({ name: user?.name || '', phoneNumber: user?.phoneNumber || '' })
                 }}
                 className="text-sm font-medium text-[--ink-secondary] hover:underline"
               >

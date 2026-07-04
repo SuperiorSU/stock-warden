@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useReducer, useRef, useEffect } from 'react'
+import { useReducer, useRef, useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api/client'
 import { format } from 'date-fns'
 import { formatINR } from '@/lib/utils/format'
 import { ArrowLeft, Download } from 'lucide-react'
 import Link from 'next/link'
-import { toast } from 'react-hot-toast'
 import { AsyncButton } from '@/components/ui/AsyncButton'
+import { useXlsxExport } from '@/lib/hooks/use-xlsx-export'
 
 interface ApprovedRecord {
   id: string
@@ -52,7 +52,6 @@ export function SAEmployeeDetail({ userId }: { userId: string }) {
     monthFrom:   '',
     monthTo:     '',
   })
-  const [exporting, setExporting] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [applied, setApplied] = useState(filters)
 
@@ -67,7 +66,7 @@ export function SAEmployeeDetail({ userId }: { userId: string }) {
   if (applied.monthFrom) params.set('monthFrom', applied.monthFrom)
   if (applied.monthTo)   params.set('monthTo',   applied.monthTo)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['sa-emp-approved', userId, applied],
     queryFn: () =>
       api.get(`/super-admin/employees/${userId}/approved?${params}`).then((r) => r.data),
@@ -78,33 +77,18 @@ export function SAEmployeeDetail({ userId }: { userId: string }) {
   const records: ApprovedRecord[]      = data?.data?.records ?? []
   const summary                        = data?.data?.summary
 
-  async function handleExport() {
-    setExporting(true)
-    try {
-      const p = new URLSearchParams({
-        employeeId:  userId,
-        status:      'APPROVED',
-        sessionYear: String(applied.sessionYear),
-      })
-      if (applied.monthFrom) p.set('monthFrom', applied.monthFrom)
-      if (applied.monthTo)   p.set('monthTo',   applied.monthTo)
+  const exportParams = new URLSearchParams({
+    employeeId:  userId,
+    status:      'APPROVED',
+    sessionYear: String(applied.sessionYear),
+  })
+  if (applied.monthFrom) exportParams.set('monthFrom', applied.monthFrom)
+  if (applied.monthTo)   exportParams.set('monthTo',   applied.monthTo)
 
-      const res = await fetch(`/api/super-admin/export/requests?${p}`, { credentials: 'include' })
-      if (!res.ok) throw new Error()
-      const blob = await res.blob()
-      const filename =
-        res.headers.get('Content-Disposition')?.match(/filename="(.+?)"/)?.[1] ??
-        `export-${employee?.name ?? userId}.xlsx`
-      const url = URL.createObjectURL(blob)
-      const a   = document.createElement('a')
-      a.href = url; a.download = filename; a.click()
-      URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Export failed. Please try again.')
-    } finally {
-      setExporting(false)
-    }
-  }
+  const { isExporting: exporting, exportFile: handleExport } = useXlsxExport(
+    `/api/super-admin/export/requests?${exportParams}`,
+    `export-${employee?.name ?? userId}.xlsx`
+  )
 
   return (
     <div className="space-y-6 page-enter">
@@ -177,6 +161,13 @@ export function SAEmployeeDetail({ userId }: { userId: string }) {
           </button>
         )}
       </div>
+
+      {isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Couldn&apos;t load this employee&apos;s allocation history.</span>
+          <button onClick={() => refetch()} className="text-sm font-medium underline">Retry</button>
+        </div>
+      )}
 
       {/* Summary strip */}
       {summary && (

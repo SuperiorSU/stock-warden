@@ -20,9 +20,13 @@ export function AppShell({
   user, pageTitle, breadcrumbs, unreadCount, hideNotifications, children, className, onLogout
 }: AppShellProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   const openMobile  = useCallback(() => setIsMobileOpen(true),  [])
   const closeMobile = useCallback(() => setIsMobileOpen(false), [])
+  const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
+    setScrolled(e.currentTarget.scrollTop > 2)
+  }, [])
 
   return (
     <div className="flex h-dvh bg-canvas overflow-hidden">
@@ -40,8 +44,12 @@ export function AppShell({
           unreadCount={unreadCount}
           breadcrumbs={breadcrumbs}
           hideNotifications={hideNotifications}
+          scrolled={scrolled}
         />
-        <main className={cn('flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 page-enter', className)}>
+        <main
+          onScroll={handleMainScroll}
+          className={cn('flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 page-enter', className)}
+        >
           {children}
         </main>
       </div>

@@ -96,13 +96,13 @@ export async function PUT(
   if (parsed.data.totalQuantity !== undefined) {
     const fulfilled = item.totalQuantity - item.availableQty;
     if (parsed.data.totalQuantity < fulfilled) {
-      return apiError(new ConflictError("TOTAL_QUANTITY_BELOW_FULFILLED"));
+      return apiError(new ConflictError("Total quantity cannot be less than the quantity already fulfilled."));
     }
 
     quantityDelta = parsed.data.totalQuantity - item.totalQuantity;
     availableQty = item.availableQty + quantityDelta;
     if (availableQty < 0) {
-      return apiError(new ConflictError("AVAILABLE_QTY_NEGATIVE"));
+      return apiError(new ConflictError("This change would result in a negative available quantity."));
     }
   }
 

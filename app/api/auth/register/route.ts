@@ -1,18 +1,41 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { hashPassword } from "@/lib/auth/password";
+import { z } from "zod";
+
+const DEPARTMENT_OPTIONS = [
+  "MBA/BBA",
+  "Pharmacy",
+  "Hotel Management",
+  "Computer Science",
+  "Admin Block",
+  "BCA",
+  "Paramedical",
+  "Applied Sciences",
+  "Super60",
+  "The Unqiues",
+] as const;
+
+const RegisterSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.email(),
+  password: z.string().min(6).max(100),
+  department: z.enum(DEPARTMENT_OPTIONS),
+});
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, name, department } = body;
+    const parsed = RegisterSchema.safeParse(body);
 
-    if (!email || !password || !name) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: { message: "Missing required fields." } },
+        { success: false, error: { message: "Invalid registration details.", details: parsed.error.flatten() } },
         { status: 400 }
       );
     }
+
+    const { email, password, name, department } = parsed.data;
 
     const existingUser = await prisma.user.findUnique({
       where: { email },

@@ -32,14 +32,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Duplicate check
   const ids = allocations.map((a) => a.requestItemId)
   const dup = ids.find((id, idx) => ids.indexOf(id) !== idx)
-  if (dup) return apiError(new ValidationError('DUPLICATE_ITEM_IN_ALLOCATION'))
+  if (dup) return apiError(new ValidationError('Duplicate item in allocation.'))
 
   // Load request and items
   const request = await prisma.request.findUnique({ where: { id: requestId }, include: { items: true } })
-  if (!request) return apiError(new NotFoundError('REQUEST_NOT_FOUND'))
+  if (!request) return apiError(new NotFoundError('Request not found.'))
 
   if (request.status !== 'REQUESTED') {
-    return apiError(new ConflictError('INVALID_STATUS'))
+    return apiError(new ConflictError('Only newly requested items can have their allocations changed.'))
   }
 
   // Ensure all requestItemIds belong to this request
@@ -59,13 +59,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   for (const a of allocations) {
     const ri = itemMap.get(a.requestItemId)!
     const inv = invMap.get(ri.itemId)
-    if (!inv) return apiError(new NotFoundError('ITEM_NOT_FOUND'))
+    if (!inv) return apiError(new NotFoundError('Inventory item not found.'))
 
     if (a.quantityAllocated > ri.quantityReq) {
-      return apiError(new ValidationError('ALLOCATION_EXCEEDS_REQUESTED'))
+      return apiError(new ValidationError(`Allocated quantity for "${inv.name}" cannot exceed the requested quantity.`))
     }
     if (a.quantityAllocated > inv.availableQty) {
-      return apiError(new ConflictError('INSUFFICIENT_STOCK'))
+      return apiError(new ConflictError(`Insufficient stock for "${inv.name}" (only ${inv.availableQty} available).`))
     }
   }
 

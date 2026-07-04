@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api/client'
 import toast from 'react-hot-toast'
@@ -41,6 +41,7 @@ const UNIT_OPTIONS = [
 
 export default function IMAddItemPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -64,6 +65,8 @@ export default function IMAddItemPage() {
   const addMutation = useMutation({
     mutationFn: (payload: FormData) => api.post('/admin/inventory', payload),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['im-inventory'] })
+      queryClient.invalidateQueries({ queryKey: ['im-inventory-all'] })
       toast.success('Item added to inventory.')
       router.push('/inventory-manager/items')
     },
@@ -136,7 +139,7 @@ export default function IMAddItemPage() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Category <span className="text-red-500">*</span></label>
             <select
@@ -165,7 +168,7 @@ export default function IMAddItemPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Total Quantity <span className="text-red-500">*</span></label>
             <input
@@ -181,6 +184,8 @@ export default function IMAddItemPage() {
             <label className="block text-sm font-medium mb-1">Session Year</label>
             <input
               type="number"
+              min={2000}
+              max={new Date().getFullYear() + 1}
               value={form.sessionYear}
               onChange={(e) => setForm({ ...form, sessionYear: Number(e.target.value) })}
               className="w-full px-3 py-2 border border-[--border-default] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-black"

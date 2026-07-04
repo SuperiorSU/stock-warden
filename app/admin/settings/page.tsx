@@ -56,7 +56,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="max-w-2xl space-y-6 page-enter">
       <div>
-        <h1 className="text-2xl font-display font-bold text-[--ink-primary]">Settings</h1>
+        <h1 className="text-2xl font-display font-bold text-[--ink-primary]">Profile</h1>
         <p className="text-sm text-[--ink-secondary]">Update your admin profile settings.</p>
       </div>
 

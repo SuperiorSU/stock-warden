@@ -165,7 +165,7 @@ export async function POST(req: Request) {
   });
 
   if (existing) {
-    return apiError(new ConflictError("DUPLICATE_ITEM"));
+    return apiError(new ConflictError("An item with this name, category, and session year already exists."));
   }
 
   const baseSlug = slugify(name);

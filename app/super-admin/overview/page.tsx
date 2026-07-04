@@ -181,6 +181,47 @@ export default function SuperAdminOverviewPage() {
         )}
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg border border-[--border-default] shadow-sm">
+          <h3 className="font-bold text-[--ink-primary] mb-4">Top Items by Demand</h3>
+          {isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => <div key={i} className="skeleton h-6 rounded" />)}
+            </div>
+          ) : (data?.topItems ?? []).length === 0 ? (
+            <p className="text-sm text-[--ink-secondary]">No item data for this period.</p>
+          ) : (
+            <ul className="divide-y divide-[--border-default]">
+              {data.topItems.map((item: { name: string; qty: number }, idx: number) => (
+                <li key={idx} className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-[--ink-primary]">{item.name}</span>
+                  <span className="font-medium text-[--ink-secondary]">{item.qty} req.</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="bg-white p-6 rounded-lg border border-[--border-default] shadow-sm">
+          <h3 className="font-bold text-[--ink-primary] mb-4">Top Departments by Requests</h3>
+          {isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => <div key={i} className="skeleton h-6 rounded" />)}
+            </div>
+          ) : (data?.topDepartments ?? []).length === 0 ? (
+            <p className="text-sm text-[--ink-secondary]">No department data for this period.</p>
+          ) : (
+            <ul className="divide-y divide-[--border-default]">
+              {data.topDepartments.map((dept: { name: string; total: number }, idx: number) => (
+                <li key={idx} className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-[--ink-primary]">{dept.name}</span>
+                  <span className="font-medium text-[--ink-secondary]">{dept.total} req.</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white p-6 rounded-lg border border-[--border-default] shadow-sm">
         <h3 className="font-bold text-[--ink-primary] mb-6">Admin Performance</h3>
         <div className="overflow-x-auto">

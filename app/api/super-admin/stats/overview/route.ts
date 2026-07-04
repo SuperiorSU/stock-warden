@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { Prisma } from "@prisma/client";
 import { apiError, apiSuccess } from "@/lib/api/response";
 import { getRequestUser } from "@/lib/api/session";
-import { UnauthorizedError, ValidationError } from "@/lib/errors";
+import { ForbiddenError, UnauthorizedError, ValidationError } from "@/lib/errors";
 import { SuperAdminOverviewSchema } from "@/lib/validation/stats";
 import { cached } from "@/lib/cache/redis";
 import { startOfMonth, endOfMonth, parseISO } from "date-fns";
@@ -17,6 +17,9 @@ export async function GET(req: Request) {
   const user = await getRequestUser();
   if (!user) {
     return apiError(new UnauthorizedError());
+  }
+  if (user.role !== "SUPER_ADMIN") {
+    return apiError(new ForbiddenError("Only super admins can view this data."));
   }
 
   const url = new URL(req.url);

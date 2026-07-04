@@ -168,10 +168,11 @@ export default function RequestDetailPage() {
               const isCurrent = req.status === step
 
               const isFailed =
-                terminalStatus && idx === (req.status === 'REJECTED' ? 1 : 1)
+                terminalStatus && idx === (req.status === 'REJECTED' ? 2 : 1)
 
               let dotClass = 'w-4 h-4 rounded-full border-2 border-[--border-default] bg-white z-10 relative'
-              if (isCurrent) dotClass = 'w-4 h-4 rounded-full border-2 border-black bg-black ring-4 ring-black/10 z-10 relative'
+              if (isFailed) dotClass = 'w-4 h-4 rounded-full border-2 border-red-600 bg-red-600 z-10 relative'
+              else if (isCurrent) dotClass = 'w-4 h-4 rounded-full border-2 border-black bg-black ring-4 ring-black/10 z-10 relative'
               else if (isCompleted && !terminalStatus) dotClass = 'w-4 h-4 rounded-full border-2 border-black bg-black z-10 relative'
 
               let label = step

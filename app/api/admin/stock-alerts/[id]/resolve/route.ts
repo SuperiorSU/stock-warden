@@ -23,13 +23,13 @@ export async function PATCH(
     return apiError(new NotFoundError("Stock alert not found."));
   }
 
+  const relatedAlerts = await prisma.stockAlert.findMany({
+    where: { itemId: alert.itemId, resolvedAt: null },
+  });
+
   const updated = await prisma.stockAlert.update({
     where: { id },
     data: { resolvedAt: new Date(), isRead: true },
-  });
-
-  const relatedAlerts = await prisma.stockAlert.findMany({
-    where: { itemId: alert.itemId },
   });
 
   await Promise.all(

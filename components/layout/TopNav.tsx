@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, memo } from 'react'
+import { memo } from 'react'
 import Link from 'next/link'
 import { Menu, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -11,19 +11,12 @@ interface TopNavProps {
   unreadCount?:        number
   breadcrumbs?:        { label: string; href?: string }[]
   hideNotifications?:  boolean
+  scrolled?:           boolean
 }
 
 export const TopNav = memo(function TopNav({
-  title, onMenuToggle, unreadCount, breadcrumbs, hideNotifications
+  title, onMenuToggle, unreadCount, breadcrumbs, hideNotifications, scrolled
 }: TopNavProps) {
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 2)
-    window.addEventListener('scroll', handler, { passive: true })
-    return () => window.removeEventListener('scroll', handler)
-  }, [])
-
   return (
     <header
       className={cn(
@@ -31,7 +24,7 @@ export const TopNav = memo(function TopNav({
         'h-[var(--nav-height)] px-4 md:px-6',
         'bg-surface/95 backdrop-blur-sm border-b border-border',
         'transition-shadow duration-200',
-        scrolled ? 'shadow-sm' : 'shadow-none'
+        scrolled ? 'shadow-sm' : 'shadow-none' // scroll state is lifted from AppShell's <main> scroll container
       )}
     >
       {/* Hamburger — mobile only */}

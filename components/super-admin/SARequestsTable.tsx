@@ -41,7 +41,7 @@ export function SARequestsTable({ filters }: { filters: SAFilters }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [cursor, setCursor] = useState<string | null>(null)
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: ['sa-emp-requests', filters, cursor],
     queryFn: () =>
       api
@@ -57,6 +57,12 @@ export function SARequestsTable({ filters }: { filters: SAFilters }) {
 
   return (
     <div className="space-y-4">
+      {isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Couldn&apos;t load requests.</span>
+          <button onClick={() => refetch()} className="text-sm font-medium underline">Retry</button>
+        </div>
+      )}
       {/* Summary strip */}
       {summary && (
         <div className="flex flex-wrap gap-6 px-4 py-3 bg-[--bg-subtle] rounded-lg text-sm">

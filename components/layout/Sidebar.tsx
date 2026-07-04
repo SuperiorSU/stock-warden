@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useCallback, memo } from 'react'
+import { useState, useCallback, useEffect, memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Package, ClipboardList, BarChart2,
   Bell, Users, LogOut, ChevronLeft, ChevronRight,
-  User, Archive, Plus, Settings, TrendingUp, Activity,
+  User, Archive, Plus, TrendingUp, Activity,
   Inbox,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -47,7 +47,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Users',        href: '/admin/users',        icon: Users },
   { label: 'Analytics',    href: '/admin/analytics',    icon: BarChart2 },
   { label: 'Stock Alerts', href: '/admin/stock-alerts', icon: Bell },
-  { label: 'Settings',     href: '/admin/settings',     icon: Settings },
+  { label: 'Profile',      href: '/admin/settings',     icon: User },
 ]
 
 const IM_NAV: NavItem[] = [
@@ -79,10 +79,11 @@ export const Sidebar = memo(function Sidebar({
   user, unreadCount, isMobileOpen, onMobileClose, onLogout
 }: SidebarProps) {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem(STORAGE_KEY) === '1'
-  })
+  const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(STORAGE_KEY) === '1')
+  }, [])
 
   const toggle = useCallback(() => {
     setCollapsed(c => {

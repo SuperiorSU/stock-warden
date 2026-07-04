@@ -1,16 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { signOut } from 'next-auth/react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api/client'
 import { AppShell } from './AppShell'
 import { InventoryManagerLayout } from './inventory-manager-layout'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
+import { useLogout } from '@/lib/hooks/use-logout'
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
+  const logout = useLogout()
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -33,18 +32,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
-    try {
-      await signOut({ redirect: false })
-    } catch {
-      // ignore
-    } finally {
-      if (typeof BroadcastChannel !== 'undefined') {
-        const channel = new BroadcastChannel('cims-auth')
-        channel.postMessage({ type: 'LOGOUT' })
-        channel.close()
-      }
-      router.push('/login')
-    }
+    await logout()
   }
 
   const user = me

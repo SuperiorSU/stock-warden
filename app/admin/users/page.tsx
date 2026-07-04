@@ -199,7 +199,7 @@ function CreateStaffModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Employee ID + Designation */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-[--ink-primary] mb-1" htmlFor="cs-empid">
                 Employee ID <span className="text-[--ink-tertiary] font-normal">(optional)</span>

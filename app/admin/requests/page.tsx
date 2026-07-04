@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api/client'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { formatDate } from '@/lib/utils'
@@ -11,20 +11,31 @@ import toast from 'react-hot-toast'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { TableWrapper } from '@/components/ui/TableWrapper'
 
+const PAGE_SIZE = 20
+
 export default function AdminRequestsPage() {
   const queryClient = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const requestsQuery = useInfiniteQuery({
     queryKey: ['admin-requests', statusFilter],
-    queryFn: async () => {
-      const params: any = {}
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const params: any = { limit: PAGE_SIZE, cursor: pageParam }
       if (statusFilter && statusFilter !== 'ALL') params.status = statusFilter
       const res = await api.get('/admin/requests', { params })
-      return res.data.data
-    }
+      return res.data as { data: any[]; meta?: { nextCursor?: string | null } }
+    },
+    getNextPageParam: (lastPage) => lastPage.meta?.nextCursor ?? undefined,
   })
+
+  const data = useMemo(
+    () => requestsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [requestsQuery.data]
+  )
+  const isLoading = requestsQuery.isLoading
+  const isError = requestsQuery.isError
 
   return (
     <div className="space-y-6 page-enter">
@@ -50,6 +61,13 @@ export default function AdminRequestsPage() {
           </select>
         </div>
       </div>
+
+      {isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Couldn&apos;t load requests.</span>
+          <button onClick={() => requestsQuery.refetch()} className="text-sm font-medium underline">Retry</button>
+        </div>
+      )}
 
       <div className="bg-white border border-[--border-default] rounded-lg shadow-sm overflow-hidden">
         {isLoading ? (
@@ -118,6 +136,18 @@ export default function AdminRequestsPage() {
         )}
       </div>
 
+      {requestsQuery.hasNextPage && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => requestsQuery.fetchNextPage()}
+            disabled={requestsQuery.isFetchingNextPage}
+            className="px-4 py-2 border border-[--border-default] rounded-md font-medium hover:bg-[--bg-subtle] disabled:opacity-50"
+          >
+            {requestsQuery.isFetchingNextPage ? 'Loading...' : 'Load more'}
+          </button>
+        </div>
+      )}
+
       {selectedRequest && (
         <RequestDrawer
           request={selectedRequest}
@@ -133,6 +163,7 @@ export default function AdminRequestsPage() {
 }
 
 function RequestDrawer({ request, onClose, onSuccess }: { request: any; onClose: () => void; onSuccess: () => void }) {
+  const queryClient = useQueryClient()
   const [adminNotes, setAdminNotes] = useState('')
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null)
   const [allocations, setAllocations] = useState<Record<string, number>>(() => {
@@ -154,6 +185,7 @@ function RequestDrawer({ request, onClose, onSuccess }: { request: any; onClose:
         })),
       }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-requests'] })
       setAllocSaved(true)
       setTimeout(() => setAllocSaved(false), 4000)
     },

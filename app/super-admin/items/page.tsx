@@ -87,7 +87,7 @@ export default function SuperAdminItemsPage() {
     order,
   }
 
-  const { data: itemsData, isLoading: isItemsLoading, isFetching: isItemsFetching } = useQuery({
+  const { data: itemsData, isLoading: isItemsLoading, isFetching: isItemsFetching, isError: isItemsError, refetch: refetchItems } = useQuery({
     queryKey: ['sa-items', filters],
     queryFn: () => api.get('/admin/stats/items', { params: filters }).then((r) => r.data.data),
     staleTime: 5 * 60 * 1000,
@@ -153,6 +153,13 @@ export default function SuperAdminItemsPage() {
         </div>
         <SAExportButton type="items" filters={filters as Record<string, unknown>} />
       </div>
+
+      {isItemsError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-13">Couldn&apos;t load item data.</span>
+          <button onClick={() => refetchItems()} className="text-13 font-medium underline">Retry</button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

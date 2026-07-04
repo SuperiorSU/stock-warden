@@ -12,8 +12,15 @@ async function getDepartments(): Promise<string[]> {
   return users.map((u) => u.department!).filter(Boolean)
 }
 
+async function getItems(): Promise<{ id: string; name: string }[]> {
+  return prisma.inventoryItem.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  })
+}
+
 export default async function SAEmployeesPage() {
-  const departments = await getDepartments()
+  const [departments, items] = await Promise.all([getDepartments(), getItems()])
 
   return (
     <div className="space-y-6 page-enter">
@@ -25,7 +32,7 @@ export default async function SAEmployeesPage() {
       </div>
       <SATopEmployeesSpend />
       <div className="border-t border-[--border-default]" />
-      <SAEmployeeExplorer departments={departments} />
+      <SAEmployeeExplorer departments={departments} items={items} />
     </div>
   )
 }

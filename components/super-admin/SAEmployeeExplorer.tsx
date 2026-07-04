@@ -6,7 +6,13 @@ import { SARequestsTable } from './SARequestsTable'
 import { SAExportButton } from './SAExportButton'
 import { SAFilters, DEFAULT_FILTERS } from './types'
 
-export function SAEmployeeExplorer({ departments }: { departments: string[] }) {
+export function SAEmployeeExplorer({
+  departments,
+  items,
+}: {
+  departments: string[]
+  items: { id: string; name: string }[]
+}) {
   const [filters, setFilters] = useState<SAFilters>(DEFAULT_FILTERS)
 
   function handleFiltersChange(patch: Partial<SAFilters>) {
@@ -20,6 +26,7 @@ export function SAEmployeeExplorer({ departments }: { departments: string[] }) {
           filters={filters}
           onFiltersChange={handleFiltersChange}
           departments={departments}
+          items={items}
         />
         <SAExportButton type="requests" filters={filters as unknown as Record<string, unknown>} />
       </div>

@@ -23,7 +23,7 @@ export default function AdminAnalyticsPage() {
   const [sessionYear, setSessionYear] = useState(new Date().getFullYear())
   const [granularity, setGranularity] = useState<'monthly' | 'yearly'>('monthly')
 
-  const { data: itemsStats, isLoading: isItemsLoading } = useQuery({
+  const { data: itemsStats, isLoading: isItemsLoading, isError: isItemsError, refetch: refetchItems } = useQuery({
     queryKey: ['admin-stats-items', sessionYear],
     queryFn: async () => {
       const res = await api.get('/admin/stats/items', { params: { sessionYear } })
@@ -31,7 +31,7 @@ export default function AdminAnalyticsPage() {
     }
   })
 
-  const { data: requestStats, isLoading: isRequestsLoading } = useQuery({
+  const { data: requestStats, isLoading: isRequestsLoading, isError: isRequestsError, refetch: refetchRequests } = useQuery({
     queryKey: ['admin-stats-requests', sessionYear, granularity],
     queryFn: async () => {
       const res = await api.get('/admin/stats/requests', { params: { sessionYear, granularity } })
@@ -39,7 +39,7 @@ export default function AdminAnalyticsPage() {
     }
   })
 
-  const { data: expenditureStats, isLoading: isExpenditureLoading } = useQuery({
+  const { data: expenditureStats, isLoading: isExpenditureLoading, isError: isExpenditureError, refetch: refetchExpenditure } = useQuery({
     queryKey: ['admin-stats-expenditure', sessionYear, granularity],
     queryFn: async () => {
       const res = await api.get('/admin/stats/expenditure', { params: { sessionYear, granularity } })
@@ -47,7 +47,7 @@ export default function AdminAnalyticsPage() {
     }
   })
 
-  const { data: userStats, isLoading: isUserStatsLoading } = useQuery({
+  const { data: userStats, isLoading: isUserStatsLoading, isError: isUserStatsError, refetch: refetchUserStats } = useQuery({
     queryKey: ['admin-stats-users', sessionYear, granularity],
     queryFn: async () => {
       const res = await api.get('/admin/stats/users', { params: { sessionYear, granularity } })
@@ -104,12 +104,30 @@ export default function AdminAnalyticsPage() {
       }))
   }, [itemsStats])
 
+  const isError = isItemsError || isRequestsError || isExpenditureError || isUserStatsError
+
   if (isLoading) {
     return <div className="p-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black" /></div>
   }
 
   return (
     <div className="space-y-6 page-enter">
+      {isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Some analytics data couldn&apos;t be loaded.</span>
+          <button
+            onClick={() => {
+              if (isItemsError) refetchItems()
+              if (isRequestsError) refetchRequests()
+              if (isExpenditureError) refetchExpenditure()
+              if (isUserStatsError) refetchUserStats()
+            }}
+            className="text-sm font-medium underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 md:space-x-4">
         <div>
           <h1 className="text-2xl font-display font-bold">Analytics</h1>

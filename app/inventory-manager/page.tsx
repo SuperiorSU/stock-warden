@@ -58,6 +58,8 @@ type ListResponse<T> = {
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
+  const apiMessage = (error as any)?.response?.data?.error?.message
+  if (typeof apiMessage === 'string' && apiMessage) return apiMessage
   if (error instanceof Error) return error.message || fallback
   return fallback
 }
@@ -163,6 +165,7 @@ export default function InventoryManagerDashboard() {
   }
 
   const pendingCount = stats.pendingRequests
+  const isError = inventoryQuery.isError || requestsQuery.isError
 
   return (
     <div className="space-y-8 page-enter">
@@ -179,6 +182,18 @@ export default function InventoryManagerDashboard() {
           Add New Item
         </Link>
       </div>
+
+      {isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Some dashboard data couldn&apos;t be loaded.</span>
+          <button
+            onClick={() => { inventoryQuery.refetch(); requestsQuery.refetch() }}
+            className="text-sm font-medium underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

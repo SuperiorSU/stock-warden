@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
 import { signIn } from 'next-auth/react'
+import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api/client'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,6 +32,8 @@ export default function LoginPage() {
         toast.error(result.error)
         return
       }
+
+      queryClient.clear()
 
       const me = await api.get('/auth/me')
       const role = me.data?.data?.role

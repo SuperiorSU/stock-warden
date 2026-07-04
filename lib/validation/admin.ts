@@ -6,7 +6,7 @@ export const AdminInventoryCreateSchema = z.object({
   category: z.string().max(120).optional(),
   unit: z.string().min(1).max(50),
   totalQuantity: z.number().int().min(1).max(10000),
-  sessionYear: z.number().int(),
+  sessionYear: z.number().int().min(2000).max(new Date().getFullYear() + 1),
   imageUrl: z.string().url().optional(),
   unitPrice: z.number().positive().max(999999.99).optional(),
 });

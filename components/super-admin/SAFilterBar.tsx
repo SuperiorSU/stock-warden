@@ -30,10 +30,12 @@ export function SAFilterBar({
   filters,
   onFiltersChange,
   departments,
+  items,
 }: {
   filters: SAFilters
   onFiltersChange: (f: Partial<SAFilters>) => void
   departments: string[]
+  items?: { id: string; name: string }[]
 }) {
   const [pending, dispatch] = useReducer(filterReducer, filters)
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -85,6 +87,20 @@ export function SAFilterBar({
           <option key={d} value={d}>{d}</option>
         ))}
       </select>
+
+      {/* Item */}
+      {items && items.length > 0 && (
+        <select
+          value={pending.itemId ?? ''}
+          onChange={(e) => dispatch({ itemId: e.target.value || null })}
+          className={filterSelectCls}
+        >
+          <option value="">All Items</option>
+          {items.map((item) => (
+            <option key={item.id} value={item.id}>{item.name}</option>
+          ))}
+        </select>
+      )}
 
       {/* Status */}
       <select

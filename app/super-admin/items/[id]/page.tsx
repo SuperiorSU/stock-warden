@@ -10,10 +10,10 @@ import {
 import { ArrowLeft, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { toast } from 'react-hot-toast'
 import { AsyncButton } from '@/components/ui/AsyncButton'
 import { formatINR } from '@/lib/utils/format'
 import { useSessionYear } from '@/lib/hooks/use-session-year'
+import { useXlsxExport } from '@/lib/hooks/use-xlsx-export'
 
 const COLORS = ['#166534', '#14532D', '#15803D', '#22C55E', '#86EFAC']
 
@@ -55,7 +55,6 @@ export default function SuperAdminItemDetailsPage() {
   const [monthFrom, setMonthFrom] = useState('')
   const [monthTo, setMonthTo] = useState('')
   const [offset, setOffset] = useState(0)
-  const [isExporting, setIsExporting] = useState(false)
 
   const statsFilters = { monthFrom: monthFrom || undefined, monthTo: monthTo || undefined }
 
@@ -69,7 +68,7 @@ export default function SuperAdminItemDetailsPage() {
 
   const allocationFilters = { sessionYear, monthFrom: monthFrom || undefined, monthTo: monthTo || undefined, limit: PAGE_SIZE, offset }
 
-  const { data: allocationsData, isLoading: isAllocationsLoading, isFetching: isAllocationsFetching } = useQuery({
+  const { data: allocationsData, isLoading: isAllocationsLoading, isFetching: isAllocationsFetching, isError: isAllocationsError, refetch: refetchAllocations } = useQuery({
     queryKey: ['sa-item-allocations', itemId, allocationFilters],
     queryFn: () => api.get(`/super-admin/items/${itemId}/approved`, { params: allocationFilters }).then((r) => r.data),
     staleTime: 3 * 60 * 1000,
@@ -84,28 +83,14 @@ export default function SuperAdminItemDetailsPage() {
     setOffset(0)
   }
 
-  async function handleExport() {
-    setIsExporting(true)
-    try {
-      const p = new URLSearchParams({ sessionYear: String(sessionYear) })
-      if (monthFrom) p.set('monthFrom', monthFrom)
-      if (monthTo)   p.set('monthTo', monthTo)
-      const res = await fetch(`/api/super-admin/export/items/${itemId}/allocations?${p}`, { credentials: 'include' })
-      if (!res.ok) throw new Error('Export failed')
-      const blob = await res.blob()
-      const filename =
-        res.headers.get('Content-Disposition')?.match(/filename="(.+?)"/)?.[1] ??
-        `export-item-${itemId}.xlsx`
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url; a.download = filename; a.click()
-      URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Export failed. Please try again.')
-    } finally {
-      setIsExporting(false)
-    }
-  }
+  const exportParams = new URLSearchParams({ sessionYear: String(sessionYear) })
+  if (monthFrom) exportParams.set('monthFrom', monthFrom)
+  if (monthTo)   exportParams.set('monthTo', monthTo)
+
+  const { isExporting, exportFile: handleExport } = useXlsxExport(
+    `/api/super-admin/export/items/${itemId}/allocations?${exportParams}`,
+    `export-item-${itemId}.xlsx`
+  )
 
   return (
     <div className="space-y-6 page-enter">
@@ -238,6 +223,13 @@ export default function SuperAdminItemDetailsPage() {
               <span className="text-xs text-[--ink-secondary]">Total Amount</span>
               <span className="font-semibold text-green-700">{formatINR(summary.totalAmount)}</span>
             </div>
+          </div>
+        )}
+
+        {isAllocationsError && (
+          <div className="px-6 py-4 bg-red-50 border-b border-red-200 text-red-800 flex items-center justify-between">
+            <span className="text-sm">Couldn&apos;t load the allocation log.</span>
+            <button onClick={() => refetchAllocations()} className="text-sm font-medium underline">Retry</button>
           </div>
         )}
 

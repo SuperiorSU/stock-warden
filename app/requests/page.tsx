@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api/client'
 import { StatusBadge } from '@/components/ui/status-badge'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { TableWrapper } from '@/components/ui/TableWrapper'
 import { Filter } from 'lucide-react'
+
+const PAGE_SIZE = 20
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'All' },
@@ -21,15 +23,25 @@ const STATUS_OPTIONS = [
 export default function RequestsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
 
-  const { data, isLoading } = useQuery({
+  const requestsQuery = useInfiniteQuery({
     queryKey: ['user-requests-all', statusFilter],
-    queryFn: async () => {
-      const params: Record<string, string> = {}
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const params: Record<string, string> = { limit: String(PAGE_SIZE) }
       if (statusFilter !== 'ALL') params.status = statusFilter
+      if (pageParam) params.cursor = pageParam
       const res = await api.get('/user/requests', { params })
-      return res.data.data
-    }
+      return res.data as { data: any[]; meta?: { nextCursor?: string | null } }
+    },
+    getNextPageParam: (lastPage) => lastPage.meta?.nextCursor ?? undefined,
   })
+
+  const data = useMemo(
+    () => requestsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [requestsQuery.data]
+  )
+  const isLoading = requestsQuery.isLoading
+  const isError = requestsQuery.isError
 
   return (
     <div className="space-y-6 page-enter">
@@ -52,6 +64,13 @@ export default function RequestsPage() {
           </select>
         </div>
       </div>
+
+      {isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
+          <span className="text-sm">Couldn&apos;t load your requests.</span>
+          <button onClick={() => requestsQuery.refetch()} className="text-sm font-medium underline">Retry</button>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg border border-[--border-default] overflow-hidden">
         {isLoading ? (
@@ -114,6 +133,18 @@ export default function RequestsPage() {
           </TableWrapper>
         )}
       </div>
+
+      {requestsQuery.hasNextPage && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => requestsQuery.fetchNextPage()}
+            disabled={requestsQuery.isFetchingNextPage}
+            className="px-4 py-2 border border-[--border-default] rounded-md font-medium hover:bg-[--bg-subtle] disabled:opacity-50"
+          >
+            {requestsQuery.isFetchingNextPage ? 'Loading...' : 'Load more'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -43,7 +43,7 @@ export async function PATCH(
       },
     });
     if (openRequests) {
-      return apiError(new ConflictError("OPEN_REQUESTS_EXIST"));
+      return apiError(new ConflictError("This item has open requests and cannot be marked stale."));
     }
   }
 
