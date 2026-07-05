@@ -13,11 +13,12 @@ export interface InventoryItem {
 }
 
 export function InventoryCard({
-  item, onNotify, onAdd
+  item, onNotify, onAdd, isNotifying
 }: {
-  item:       InventoryItem
-  onNotify?:  (item: InventoryItem) => void
-  onAdd?:     (item: InventoryItem) => void
+  item:         InventoryItem
+  onNotify?:    (item: InventoryItem) => void
+  onAdd?:       (item: InventoryItem) => void
+  isNotifying?: boolean
 }) {
   const isOutOfStock = item.availableQty === 0
 
@@ -67,15 +68,16 @@ export function InventoryCard({
             <button
               type="button"
               onClick={() => onNotify?.(item)}
+              disabled={isNotifying}
               className={cn(
                 'text-13 font-medium px-3 py-1.5 rounded-md',
                 'border border-border text-ink-2',
                 'hover:bg-sunken hover:text-ink-1 hover:border-border-strong',
                 'active:scale-[0.97] transition-all duration-150',
-                'cursor-pointer'
+                'cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
-              Notify me
+              {isNotifying ? 'Sending…' : 'Notify me'}
             </button>
           ) : (
             <button

@@ -27,23 +27,23 @@ export interface SidebarUser {
 
 interface SidebarProps {
   user:          SidebarUser
-  unreadCount?:  number
   isMobileOpen:  boolean
   onMobileClose: () => void
   onLogout:      () => void
 }
 
 const USER_NAV: NavItem[] = [
-  { label: 'Dashboard',     href: '/dashboard',     icon: LayoutDashboard },
-  { label: 'Inventory',     href: '/inventory',     icon: Package },
-  { label: 'My Requests',   href: '/requests',      icon: ClipboardList },
-  { label: 'Notifications', href: '/notifications', icon: Bell },
-  { label: 'Profile',       href: '/profile',       icon: User },
+  { label: 'Dashboard',   href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Inventory',   href: '/inventory', icon: Package },
+  { label: 'My Requests', href: '/requests',  icon: ClipboardList },
+  { label: 'Profile',     href: '/profile',   icon: User },
 ]
 
 const ADMIN_NAV: NavItem[] = [
   { label: 'Requests',     href: '/admin/requests',     icon: Inbox },
   { label: 'Inventory',    href: '/admin/inventory',    icon: Archive },
+  { label: 'Items',        href: '/admin/items',        icon: Activity },
+  { label: 'Employees',    href: '/admin/employees',    icon: Users },
   { label: 'Users',        href: '/admin/users',        icon: Users },
   { label: 'Analytics',    href: '/admin/analytics',    icon: BarChart2 },
   { label: 'Stock Alerts', href: '/admin/stock-alerts', icon: Bell },
@@ -76,7 +76,7 @@ const NAV_MAP: Record<string, NavItem[]> = {
 const STORAGE_KEY = 'sw:sidebar:collapsed'
 
 export const Sidebar = memo(function Sidebar({
-  user, unreadCount, isMobileOpen, onMobileClose, onLogout
+  user, isMobileOpen, onMobileClose, onLogout
 }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
@@ -143,7 +143,6 @@ export const Sidebar = memo(function Sidebar({
                   ? pathname === item.href
                   : pathname.startsWith(item.href)
                 const Icon = item.icon
-                const showBadge = item.label === 'Notifications' && !!unreadCount && unreadCount > 0
 
                 return (
                   <li key={item.href}>
@@ -182,21 +181,6 @@ export const Sidebar = memo(function Sidebar({
                       >
                         {item.label}
                       </span>
-
-                      {showBadge && (
-                        <span
-                          className={cn(
-                            'ml-auto shrink-0 min-w-4.5 h-4.5 px-1',
-                            'bg-status-negative text-white text-10 font-bold',
-                            'rounded-full flex items-center justify-center',
-                            'transition-opacity duration-200',
-                            collapsed ? 'opacity-0' : 'opacity-100'
-                          )}
-                          aria-label={`${unreadCount} unread`}
-                        >
-                          {unreadCount! > 99 ? '99+' : unreadCount}
-                        </span>
-                      )}
                     </Link>
                   </li>
                 )

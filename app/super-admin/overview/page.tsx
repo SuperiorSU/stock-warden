@@ -25,7 +25,7 @@ export default function SuperAdminOverviewPage() {
 
   const filters = { sessionYear, granularity: 'monthly', monthFrom: monthFrom || undefined, monthTo: monthTo || undefined }
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['super-admin-overview', filters],
     queryFn: async () => {
       const res = await api.get('/super-admin/stats/overview', { params: filters })
@@ -109,7 +109,7 @@ export default function SuperAdminOverviewPage() {
       {isError && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm">Couldn&apos;t load platform metrics. The numbers below may be stale or missing.</span>
-          <button onClick={() => refetch()} className="text-sm font-medium underline">Retry</button>
+          <button onClick={() => refetch()} disabled={isFetching} className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed">{isFetching ? 'Retrying…' : 'Retry'}</button>
         </div>
       )}
 

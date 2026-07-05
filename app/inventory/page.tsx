@@ -15,6 +15,8 @@ export default function InventoryPage() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 450)
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [notifyingId, setNotifyingId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const cart = useRequestStore()
 
   const inventoryQuery = useInfiniteQuery({
@@ -35,6 +37,8 @@ export default function InventoryPage() {
   const isError = inventoryQuery.isError
 
   const handleNotify = async (item: InventoryItem) => {
+    if (notifyingId) return
+    setNotifyingId(item.id)
     try {
       await api.post(`/inventory/items/${item.id}/alert`, { message: 'Out of stock alert' })
       toast.success('Stock alert sent to admin.')
@@ -44,6 +48,8 @@ export default function InventoryPage() {
       } else {
         toast.error('Could not send the alert. Please try again.')
       }
+    } finally {
+      setNotifyingId(null)
     }
   }
 
@@ -58,7 +64,8 @@ export default function InventoryPage() {
   }
 
   const handleSubmitRequest = async () => {
-    if (cart.items.length === 0) return
+    if (cart.items.length === 0 || isSubmitting) return
+    setIsSubmitting(true)
     try {
       await api.post('/user/requests', {
         items: cart.items.map(i => ({ itemId: i.item.id, quantity: i.quantity })),
@@ -80,10 +87,13 @@ export default function InventoryPage() {
       } else {
         toast.error(err.response?.data?.error?.message || 'Could not submit your request. Please try again.')
       }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
+    <>
     <div className="space-y-6 page-enter">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -120,7 +130,7 @@ export default function InventoryPage() {
       {isError && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm">Couldn&apos;t load inventory.</span>
-          <button onClick={() => inventoryQuery.refetch()} className="text-sm font-medium underline">Retry</button>
+          <button onClick={() => inventoryQuery.refetch()} disabled={inventoryQuery.isFetching} className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed">{inventoryQuery.isFetching ? 'Retrying…' : 'Retry'}</button>
         </div>
       )}
 
@@ -143,6 +153,7 @@ export default function InventoryPage() {
                 item={item}
                 onNotify={handleNotify}
                 onAdd={handleAdd}
+                isNotifying={notifyingId === item.id}
               />
             ))}
           </div>
@@ -159,20 +170,21 @@ export default function InventoryPage() {
           )}
         </>
       )}
+    </div>
 
       {/* Slide-over Cart */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsCartOpen(false)} />
-          <div className="relative w-full max-w-md bg-white h-full shadow-xl flex flex-col animate-in slide-in-from-right">
-            <div className="p-4 border-b border-[--border-default] flex items-center justify-between">
+          <div className="relative w-full max-w-md bg-white h-dvh shadow-xl flex flex-col animate-in slide-in-from-right">
+            <div className="shrink-0 p-4 border-b border-[--border-default] flex items-center justify-between">
               <h2 className="font-display text-xl font-bold">New Request</h2>
               <button onClick={() => setIsCartOpen(false)} className="text-[--ink-secondary] hover:text-[--ink-primary]">
                 <X size={24} />
               </button>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
               {cart.items.length === 0 ? (
                 <div className="text-center py-10 text-[--ink-tertiary]">
                   Your request list is empty.
@@ -209,7 +221,7 @@ export default function InventoryPage() {
               )}
             </div>
 
-            <div className="p-4 border-t border-[--border-default] space-y-4">
+            <div className="shrink-0 p-4 border-t border-[--border-default] space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Notes (optional)</label>
                 <textarea 
@@ -221,24 +233,25 @@ export default function InventoryPage() {
                 />
               </div>
               <div className="flex space-x-3">
-                <button 
+                <button
                   onClick={() => setIsCartOpen(false)}
-                  className="flex-1 py-2 border border-[--border-default] rounded-md font-medium hover:bg-[--bg-subtle]"
+                  disabled={isSubmitting}
+                  className="flex-1 py-2 border border-[--border-default] rounded-md font-medium hover:bg-[--bg-subtle] disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleSubmitRequest}
-                  disabled={cart.items.length === 0}
+                  disabled={cart.items.length === 0 || isSubmitting}
                   className="flex-1 py-2 bg-black text-white rounded-md font-medium hover:bg-[--accent-hover] disabled:opacity-50"
                 >
-                  Submit
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

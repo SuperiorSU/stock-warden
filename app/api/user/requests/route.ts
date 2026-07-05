@@ -16,6 +16,7 @@ import { dispatchToAdmins } from "@/lib/notifications/dispatcher";
 import { enforceRateLimit } from "@/lib/api/rate-limit";
 import { RATE_LIMITS } from "@/lib/rate-limit/config";
 import { parseIsoDate } from "@/lib/utils/date";
+import { getCurrentSessionYear } from "@/lib/utils/session-year";
 
 export async function GET(req: Request) {
   const user = await getRequestUser();
@@ -115,10 +116,7 @@ export async function POST(req: Request) {
     return apiError(new ValidationError("Invalid payload.", parsed.error.flatten()));
   }
 
-  const sessionYear = Number(process.env.SESSION_YEAR_CURRENT ?? "");
-  if (!sessionYear || Number.isNaN(sessionYear)) {
-    return apiError(new ValidationError("Invalid session year configuration."));
-  }
+  const sessionYear = getCurrentSessionYear();
 
   const items = parsed.data.items;
   const itemIds = items.map((item) => item.itemId);

@@ -70,7 +70,7 @@ export default function IMItemsPage() {
       {inventoryQuery.isError && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm">Couldn&apos;t load inventory items.</span>
-          <button onClick={() => inventoryQuery.refetch()} className="text-sm font-medium underline">Retry</button>
+          <button onClick={() => inventoryQuery.refetch()} disabled={inventoryQuery.isFetching} className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed">{inventoryQuery.isFetching ? 'Retrying…' : 'Retry'}</button>
         </div>
       )}
 

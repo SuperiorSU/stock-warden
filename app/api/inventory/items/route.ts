@@ -6,6 +6,7 @@ import { getRequestUser } from "@/lib/api/session";
 import { paginateWithCursor } from "@/lib/pagination/cursor";
 import { decodeCursor, encodeCursor } from "@/lib/pagination/secure-cursor";
 import { apiSuccess } from "@/lib/api/response";
+import { getCurrentSessionYear } from "@/lib/utils/session-year";
 
 export async function GET(req: Request) {
   const user = await getRequestUser();
@@ -49,8 +50,7 @@ export async function GET(req: Request) {
     }
   }
 
-  const defaultSessionYear = Number(process.env.SESSION_YEAR_CURRENT ?? "");
-  const resolvedSessionYear = sessionYear ?? (Number.isNaN(defaultSessionYear) ? undefined : defaultSessionYear);
+  const resolvedSessionYear = sessionYear ?? getCurrentSessionYear();
 
   const isPrivileged = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
 

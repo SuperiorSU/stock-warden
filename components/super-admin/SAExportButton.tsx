@@ -10,9 +10,11 @@ type ExportType = 'requests' | 'items'
 export function SAExportButton({
   type,
   filters,
+  basePath = '/api/super-admin/export',
 }: {
   type: ExportType
   filters?: Record<string, unknown>
+  basePath?: string
 }) {
   const [isPending, setIsPending] = useState(false)
 
@@ -24,7 +26,7 @@ export function SAExportButton({
           .filter(([, v]) => v != null)
           .map(([k, v]) => [k, String(v)])
       )
-      const url = `/api/super-admin/export/${type}?${params}`
+      const url = `${basePath}/${type}?${params}`
       const res = await fetch(url, { credentials: 'include' })
       if (!res.ok) throw new Error('Export failed')
 

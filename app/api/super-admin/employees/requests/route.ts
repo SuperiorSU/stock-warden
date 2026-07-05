@@ -33,7 +33,7 @@ async function getExpenditureForRequests(
 export async function GET(req: Request) {
   const user = await getRequestUser();
   if (!user) return apiError(new UnauthorizedError());
-  if (user.role !== "SUPER_ADMIN") return apiError(new ForbiddenError());
+  if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) return apiError(new ForbiddenError());
 
   const { searchParams } = new URL(req.url);
 

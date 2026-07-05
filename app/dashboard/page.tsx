@@ -8,7 +8,7 @@ import { PlusCircle } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const { data: profileData, isLoading: isLoadingProfile, isError: isProfileError, refetch: refetchProfile } = useQuery({
+  const { data: profileData, isLoading: isLoadingProfile, isError: isProfileError, isFetching: isProfileFetching, refetch: refetchProfile } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
       const res = await api.get('/user/profile')
@@ -16,7 +16,7 @@ export default function DashboardPage() {
     }
   })
 
-  const { data: requestsData, isLoading: isLoadingRequests, isError: isRequestsError, refetch: refetchRequests } = useQuery({
+  const { data: requestsData, isLoading: isLoadingRequests, isError: isRequestsError, isFetching: isRequestsFetching, refetch: refetchRequests } = useQuery({
     queryKey: ['user-requests', { limit: 5 }],
     queryFn: async () => {
       const res = await api.get('/user/requests?limit=5')
@@ -68,9 +68,10 @@ export default function DashboardPage() {
           <span className="text-sm">Some dashboard data couldn&apos;t be loaded.</span>
           <button
             onClick={() => { if (isProfileError) refetchProfile(); if (isRequestsError) refetchRequests() }}
-            className="text-sm font-medium underline"
+            disabled={isProfileFetching || isRequestsFetching}
+            className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Retry
+            {isProfileFetching || isRequestsFetching ? 'Retrying…' : 'Retry'}
           </button>
         </div>
       )}

@@ -188,9 +188,10 @@ export default function InventoryManagerDashboard() {
           <span className="text-sm">Some dashboard data couldn&apos;t be loaded.</span>
           <button
             onClick={() => { inventoryQuery.refetch(); requestsQuery.refetch() }}
-            className="text-sm font-medium underline"
+            disabled={inventoryQuery.isFetching || requestsQuery.isFetching}
+            className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Retry
+            {inventoryQuery.isFetching || requestsQuery.isFetching ? 'Retrying…' : 'Retry'}
           </button>
         </div>
       )}

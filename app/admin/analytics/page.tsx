@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import { useMemo, useState } from 'react'
 import { formatINR, abbreviateINR } from '@/lib/utils/format'
+import { SAExportButton } from '@/components/super-admin/SAExportButton'
 
 const COLORS = ['#166534', '#14532D', '#15803D', '#22C55E', '#86EFAC']
 const STATUS_COLORS = {
@@ -23,7 +24,7 @@ export default function AdminAnalyticsPage() {
   const [sessionYear, setSessionYear] = useState(new Date().getFullYear())
   const [granularity, setGranularity] = useState<'monthly' | 'yearly'>('monthly')
 
-  const { data: itemsStats, isLoading: isItemsLoading, isError: isItemsError, refetch: refetchItems } = useQuery({
+  const { data: itemsStats, isLoading: isItemsLoading, isError: isItemsError, isFetching: isItemsFetching, refetch: refetchItems } = useQuery({
     queryKey: ['admin-stats-items', sessionYear],
     queryFn: async () => {
       const res = await api.get('/admin/stats/items', { params: { sessionYear } })
@@ -31,7 +32,7 @@ export default function AdminAnalyticsPage() {
     }
   })
 
-  const { data: requestStats, isLoading: isRequestsLoading, isError: isRequestsError, refetch: refetchRequests } = useQuery({
+  const { data: requestStats, isLoading: isRequestsLoading, isError: isRequestsError, isFetching: isRequestsFetching, refetch: refetchRequests } = useQuery({
     queryKey: ['admin-stats-requests', sessionYear, granularity],
     queryFn: async () => {
       const res = await api.get('/admin/stats/requests', { params: { sessionYear, granularity } })
@@ -39,7 +40,7 @@ export default function AdminAnalyticsPage() {
     }
   })
 
-  const { data: expenditureStats, isLoading: isExpenditureLoading, isError: isExpenditureError, refetch: refetchExpenditure } = useQuery({
+  const { data: expenditureStats, isLoading: isExpenditureLoading, isError: isExpenditureError, isFetching: isExpenditureFetching, refetch: refetchExpenditure } = useQuery({
     queryKey: ['admin-stats-expenditure', sessionYear, granularity],
     queryFn: async () => {
       const res = await api.get('/admin/stats/expenditure', { params: { sessionYear, granularity } })
@@ -47,7 +48,7 @@ export default function AdminAnalyticsPage() {
     }
   })
 
-  const { data: userStats, isLoading: isUserStatsLoading, isError: isUserStatsError, refetch: refetchUserStats } = useQuery({
+  const { data: userStats, isLoading: isUserStatsLoading, isError: isUserStatsError, isFetching: isUserStatsFetching, refetch: refetchUserStats } = useQuery({
     queryKey: ['admin-stats-users', sessionYear, granularity],
     queryFn: async () => {
       const res = await api.get('/admin/stats/users', { params: { sessionYear, granularity } })
@@ -122,9 +123,10 @@ export default function AdminAnalyticsPage() {
               if (isExpenditureError) refetchExpenditure()
               if (isUserStatsError) refetchUserStats()
             }}
-            className="text-sm font-medium underline"
+            disabled={isItemsFetching || isRequestsFetching || isExpenditureFetching || isUserStatsFetching}
+            className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Retry
+            {isItemsFetching || isRequestsFetching || isExpenditureFetching || isUserStatsFetching ? 'Retrying…' : 'Retry'}
           </button>
         </div>
       )}
@@ -153,6 +155,7 @@ export default function AdminAnalyticsPage() {
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
           </select>
+          <SAExportButton type="items" filters={{ sessionYear }} />
         </div>
       </div>
 

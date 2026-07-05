@@ -34,7 +34,6 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
     <>
       <AppShell
         user={user}
-        hideNotifications
         onLogout={() => setIsLogoutModalOpen(true)}
       >
         {children}

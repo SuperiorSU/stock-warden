@@ -20,10 +20,12 @@ export const SARequestRowMemo = memo(function SARequestRow({
   request,
   isExpanded,
   onToggle,
+  employeeBasePath = '/super-admin/employees',
 }: {
   request: SARequest
   isExpanded: boolean
   onToggle: () => void
+  employeeBasePath?: string | null
 }) {
   return (
     <>
@@ -34,14 +36,16 @@ export const SARequestRowMemo = memo(function SARequestRow({
         <td className="px-6 py-4">
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-[--ink-primary]">{request.user.name}</span>
-            <Link
-              href={`/super-admin/employees/${request.user.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="text-[--ink-disabled] hover:text-[--ink-primary] transition-colors"
-              title="View employee profile"
-            >
-              <ExternalLink size={12} />
-            </Link>
+            {employeeBasePath && (
+              <Link
+                href={`${employeeBasePath}/${request.user.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-[--ink-disabled] hover:text-[--ink-primary] transition-colors"
+                title="View employee profile"
+              >
+                <ExternalLink size={12} />
+              </Link>
+            )}
           </div>
           <div className="text-xs text-[--ink-secondary]">{request.user.employeeId ?? '—'}</div>
         </td>

@@ -37,15 +37,23 @@ function SkeletonRow() {
   )
 }
 
-export function SARequestsTable({ filters }: { filters: SAFilters }) {
+export function SARequestsTable({
+  filters,
+  basePath = '/super-admin/employees/requests',
+  employeeBasePath = '/super-admin/employees',
+}: {
+  filters: SAFilters
+  basePath?: string
+  employeeBasePath?: string | null
+}) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [cursor, setCursor] = useState<string | null>(null)
 
   const { data, isLoading, isFetching, isError, refetch } = useQuery({
-    queryKey: ['sa-emp-requests', filters, cursor],
+    queryKey: ['sa-emp-requests', basePath, filters, cursor],
     queryFn: () =>
       api
-        .get(buildUrl('/super-admin/employees/requests', { ...filters, cursor }))
+        .get(buildUrl(basePath, { ...filters, cursor }))
         .then((r) => r.data),
     staleTime: 3 * 60 * 1000,
     placeholderData: keepPreviousData,
@@ -60,7 +68,7 @@ export function SARequestsTable({ filters }: { filters: SAFilters }) {
       {isError && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm">Couldn&apos;t load requests.</span>
-          <button onClick={() => refetch()} className="text-sm font-medium underline">Retry</button>
+          <button onClick={() => refetch()} disabled={isFetching} className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed">{isFetching ? 'Retrying…' : 'Retry'}</button>
         </div>
       )}
       {/* Summary strip */}
@@ -108,6 +116,7 @@ export function SARequestsTable({ filters }: { filters: SAFilters }) {
                     request={r}
                     isExpanded={expandedId === r.id}
                     onToggle={() => setExpandedId((id) => (id === r.id ? null : r.id))}
+                    employeeBasePath={employeeBasePath}
                   />
                 ))
               )}

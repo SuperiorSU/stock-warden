@@ -46,7 +46,13 @@ const selectCls =
   'text-sm border border-[--border-default] rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-black'
 const inputCls = selectCls + ' w-36'
 
-export function SAEmployeeDetail({ userId }: { userId: string }) {
+export function SAEmployeeDetail({
+  userId,
+  backHref = '/super-admin/employees',
+}: {
+  userId: string
+  backHref?: string
+}) {
   const [filters, dispatch] = useReducer(filterReducer, {
     sessionYear: new Date().getFullYear(),
     monthFrom:   '',
@@ -66,7 +72,7 @@ export function SAEmployeeDetail({ userId }: { userId: string }) {
   if (applied.monthFrom) params.set('monthFrom', applied.monthFrom)
   if (applied.monthTo)   params.set('monthTo',   applied.monthTo)
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['sa-emp-approved', userId, applied],
     queryFn: () =>
       api.get(`/super-admin/employees/${userId}/approved?${params}`).then((r) => r.data),
@@ -94,7 +100,7 @@ export function SAEmployeeDetail({ userId }: { userId: string }) {
     <div className="space-y-6 page-enter">
       {/* Back nav */}
       <Link
-        href="/super-admin/employees"
+        href={backHref}
         className="inline-flex items-center gap-1.5 text-sm text-[--ink-secondary] hover:text-[--ink-primary]"
       >
         <ArrowLeft size={14} />
@@ -165,7 +171,7 @@ export function SAEmployeeDetail({ userId }: { userId: string }) {
       {isError && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm">Couldn&apos;t load this employee&apos;s allocation history.</span>
-          <button onClick={() => refetch()} className="text-sm font-medium underline">Retry</button>
+          <button onClick={() => refetch()} disabled={isFetching} className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed">{isFetching ? 'Retrying…' : 'Retry'}</button>
         </div>
       )}
 

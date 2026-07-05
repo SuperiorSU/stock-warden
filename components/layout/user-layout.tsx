@@ -21,20 +21,6 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: notificationsData } = useQuery({
-    queryKey: ['user-notifications'],
-    queryFn: async () => {
-      const res = await api.get('/user/notifications?limit=10')
-      return res.data.data
-    },
-    refetchInterval: 45000,
-    staleTime: 45000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  })
-
-  const unreadCount = (notificationsData ?? []).filter((n: any) => !n.isRead).length
-
   const handleLogout = async () => {
     setIsLoggingOut(true)
     await logout()
@@ -48,7 +34,6 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
     <>
       <AppShell
         user={user}
-        unreadCount={unreadCount}
         onLogout={() => setIsLogoutModalOpen(true)}
       >
         {children}

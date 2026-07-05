@@ -9,9 +9,15 @@ import { SAFilters, DEFAULT_FILTERS } from './types'
 export function SAEmployeeExplorer({
   departments,
   items,
+  requestsBasePath = '/super-admin/employees/requests',
+  exportBasePath = '/api/super-admin/export',
+  employeeBasePath = '/super-admin/employees',
 }: {
   departments: string[]
   items: { id: string; name: string }[]
+  requestsBasePath?: string
+  exportBasePath?: string
+  employeeBasePath?: string | null
 }) {
   const [filters, setFilters] = useState<SAFilters>(DEFAULT_FILTERS)
 
@@ -28,9 +34,9 @@ export function SAEmployeeExplorer({
           departments={departments}
           items={items}
         />
-        <SAExportButton type="requests" filters={filters as unknown as Record<string, unknown>} />
+        <SAExportButton type="requests" filters={filters as unknown as Record<string, unknown>} basePath={exportBasePath} />
       </div>
-      <SARequestsTable filters={filters} />
+      <SARequestsTable filters={filters} basePath={requestsBasePath} employeeBasePath={employeeBasePath} />
     </div>
   )
 }

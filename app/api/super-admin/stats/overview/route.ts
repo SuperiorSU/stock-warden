@@ -6,6 +6,7 @@ import { ForbiddenError, UnauthorizedError, ValidationError } from "@/lib/errors
 import { SuperAdminOverviewSchema } from "@/lib/validation/stats";
 import { cached } from "@/lib/cache/redis";
 import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { getCurrentSessionYear } from "@/lib/utils/session-year";
 
 const granularityMap: Record<string, string> = {
   monthly: "month",
@@ -34,11 +35,7 @@ export async function GET(req: Request) {
     return apiError(new ValidationError("Invalid query parameters.", parsed.error.flatten()));
   }
 
-  const sessionYear =
-    parsed.data.sessionYear ?? Number(process.env.SESSION_YEAR_CURRENT ?? "");
-  if (!sessionYear || Number.isNaN(sessionYear)) {
-    return apiError(new ValidationError("Invalid session year."));
-  }
+  const sessionYear = parsed.data.sessionYear ?? getCurrentSessionYear();
 
   const granularity = parsed.data.granularity ?? "monthly";
   const { monthFrom, monthTo } = parsed.data;

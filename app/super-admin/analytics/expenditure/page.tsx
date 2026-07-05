@@ -16,7 +16,7 @@ export default function SAExpenditurePage() {
   const [sessionYear, setSessionYear] = useSessionYear()
   const [granularity, setGranularity] = useState<'monthly' | 'yearly'>('monthly')
 
-  const { data: expenditureData, isLoading, isError, refetch } = useQuery({
+  const { data: expenditureData, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['sa-expenditure', sessionYear, granularity],
     queryFn: async () => {
       const res = await api.get('/admin/stats/expenditure', { params: { sessionYear, granularity } })
@@ -87,7 +87,7 @@ export default function SAExpenditurePage() {
       {isError && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm">Couldn&apos;t load expenditure data.</span>
-          <button onClick={() => refetch()} className="text-sm font-medium underline">Retry</button>
+          <button onClick={() => refetch()} disabled={isFetching} className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed">{isFetching ? 'Retrying…' : 'Retry'}</button>
         </div>
       )}
 

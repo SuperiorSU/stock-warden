@@ -55,7 +55,7 @@ export default function SuperAdminUsersPage() {
       {usersQuery.isError && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm">Couldn&apos;t load users.</span>
-          <button onClick={() => usersQuery.refetch()} className="text-sm font-medium underline">Retry</button>
+          <button onClick={() => usersQuery.refetch()} disabled={usersQuery.isFetching} className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed">{usersQuery.isFetching ? 'Retrying…' : 'Retry'}</button>
         </div>
       )}
 

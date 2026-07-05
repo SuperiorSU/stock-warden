@@ -6,18 +6,16 @@ import { TopNav } from './TopNav'
 import { cn } from '@/lib/utils'
 
 interface AppShellProps {
-  user:               SidebarUser
-  pageTitle?:         string
-  breadcrumbs?:       { label: string; href?: string }[]
-  unreadCount?:       number
-  hideNotifications?: boolean
-  children:           React.ReactNode
-  className?:         string
-  onLogout:           () => void
+  user:         SidebarUser
+  pageTitle?:   string
+  breadcrumbs?: { label: string; href?: string }[]
+  children:     React.ReactNode
+  className?:   string
+  onLogout:     () => void
 }
 
 export function AppShell({
-  user, pageTitle, breadcrumbs, unreadCount, hideNotifications, children, className, onLogout
+  user, pageTitle, breadcrumbs, children, className, onLogout
 }: AppShellProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -32,7 +30,6 @@ export function AppShell({
     <div className="flex h-dvh bg-canvas overflow-hidden">
       <Sidebar
         user={user}
-        unreadCount={unreadCount}
         isMobileOpen={isMobileOpen}
         onMobileClose={closeMobile}
         onLogout={onLogout}
@@ -41,9 +38,7 @@ export function AppShell({
         <TopNav
           title={pageTitle ?? ''}
           onMenuToggle={openMobile}
-          unreadCount={unreadCount}
           breadcrumbs={breadcrumbs}
-          hideNotifications={hideNotifications}
           scrolled={scrolled}
         />
         <main

@@ -1,21 +1,18 @@
 'use client'
 
 import { memo } from 'react'
-import Link from 'next/link'
-import { Menu, Bell } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface TopNavProps {
-  title:               string
-  onMenuToggle:        () => void
-  unreadCount?:        number
-  breadcrumbs?:        { label: string; href?: string }[]
-  hideNotifications?:  boolean
-  scrolled?:           boolean
+  title:        string
+  onMenuToggle: () => void
+  breadcrumbs?: { label: string; href?: string }[]
+  scrolled?:    boolean
 }
 
 export const TopNav = memo(function TopNav({
-  title, onMenuToggle, unreadCount, breadcrumbs, hideNotifications, scrolled
+  title, onMenuToggle, breadcrumbs, scrolled
 }: TopNavProps) {
   return (
     <header
@@ -64,23 +61,6 @@ export const TopNav = memo(function TopNav({
           <h1 className="text-16 font-semibold text-ink-1 truncate">{title}</h1>
         )}
       </div>
-
-      {/* Notification bell */}
-      {!hideNotifications && (
-        <Link
-          href="/notifications"
-          className="relative p-1.5 rounded-md text-ink-3 hover:text-ink-1 hover:bg-sunken transition-colors"
-          aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}
-        >
-          <Bell size={18} strokeWidth={1.75} />
-          {unreadCount && unreadCount > 0 ? (
-            <span
-              className="absolute top-0.5 right-0.5 size-[7px] rounded-full bg-status-negative"
-              aria-hidden
-            />
-          ) : null}
-        </Link>
-      )}
     </header>
   )
 })

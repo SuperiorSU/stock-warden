@@ -134,7 +134,7 @@ export default function InventoryManagerRequestsPage() {
       {isError && (
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm">Couldn&apos;t load requests.</span>
-          <button onClick={() => requestsQuery.refetch()} className="text-sm font-medium underline">Retry</button>
+          <button onClick={() => requestsQuery.refetch()} disabled={requestsQuery.isFetching} className="text-sm font-medium underline disabled:opacity-50 disabled:cursor-not-allowed">{requestsQuery.isFetching ? 'Retrying…' : 'Retry'}</button>
         </div>
       )}
 
