@@ -16,7 +16,7 @@ interface PendingUser {
 
 const DEPARTMENT_OPTIONS = [
   'MBA/BBA', 'Pharmacy', 'Hotel Management', 'Computer Science',
-  'Admin Block', 'BCA', 'Paramedical', 'Applied Sciences', 'Super60', 'The Uniques',
+  'Admission Cell', 'BCA', 'Paramedical', 'Applied Sciences', 'Super60', 'The Uniques',
 ]
 
 const ROLE_OPTIONS = [

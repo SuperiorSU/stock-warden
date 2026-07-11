@@ -18,7 +18,7 @@ export default function RegisterPage() {
     'Pharmacy',
     'Hotel Management',
     'Computer Science',
-    'Admin Block',
+    'Admission Cell',
     'BCA',
     'Paramedical',
     'Applied Sciences',
