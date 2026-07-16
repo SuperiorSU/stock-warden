@@ -7,8 +7,7 @@ import { formatINR } from '@/lib/utils/format'
 import { format } from 'date-fns'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell,
+  Tooltip as RechartsTooltip, ResponsiveContainer, Cell,
 } from 'recharts'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -16,13 +15,6 @@ import { SAExportButton } from './SAExportButton'
 import { useSessionYear } from '@/lib/hooks/use-session-year'
 
 const STATUS_LABELS = ['APPROVED', 'REJECTED', 'CANCELLED', 'PENDING', 'REQUESTED'] as const
-const STATUS_COLORS: Record<string, string> = {
-  APPROVED:  '#16A34A',
-  REJECTED:  '#DC2626',
-  CANCELLED: '#52525B',
-  PENDING:   '#D97706',
-  REQUESTED: '#2563EB',
-}
 const ITEM_COLORS = ['#16603A', '#14532D', '#15803D', '#22C55E', '#86EFAC', '#4ADE80', '#16A34A', '#1D7A4A']
 
 type SortBy = 'amount' | 'qty' | 'requests'
@@ -102,13 +94,6 @@ export function SAItemsExplorer({
     placeholderData: keepPreviousData,
   })
 
-  const { data: requestStats, isLoading: isRequestsLoading } = useQuery({
-    queryKey: ['sa-items-requests', sessionYear, monthFrom, monthTo],
-    queryFn: () =>
-      api.get('/admin/stats/requests', { params: { sessionYear, granularity: 'monthly' } }).then((r) => r.data.data),
-    staleTime: 5 * 60 * 1000,
-  })
-
   const statusQueries = useQueries({
     queries: STATUS_LABELS.map((status) => ({
       queryKey: ['sa-status-count', sessionYear, status],
@@ -118,13 +103,6 @@ export function SAItemsExplorer({
       staleTime: 5 * 60 * 1000,
     })),
   })
-
-  const requestSeries = useMemo(() => {
-    return (requestStats?.series ?? []).map((entry: { bucket: string; total: number }) => ({
-      month:    new Date(entry.bucket).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-      requests: entry.total,
-    }))
-  }, [requestStats])
 
   const items: ItemRow[] = itemsData?.items ?? []
 
@@ -150,7 +128,7 @@ export function SAItemsExplorer({
     totalQtyFulfilled: items.reduce((s, i) => s + i.totalFulfilled, 0),
   }), [items])
 
-  const isLoading = isItemsLoading || isRequestsLoading || statusQueries.some((q) => q.isLoading)
+  const isLoading = isItemsLoading || statusQueries.some((q) => q.isLoading)
 
   return (
     <div className="space-y-8 page-enter">
@@ -200,57 +178,8 @@ export function SAItemsExplorer({
       )}
 
       {!isLoading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <div className="bg-surface p-6 rounded-lg border border-border shadow-sm min-w-0">
-            <h3 className="text-14 font-semibold text-ink-1 mb-5">Request Volume Over Time</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <LineChart data={requestSeries}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--ink-3)' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--ink-3)' }} />
-                  <RechartsTooltip contentStyle={{ borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }} />
-                  <Line type="monotone" dataKey="requests" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: 'var(--accent)' }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
-              {requestSeries.length === 0 && (
-                <p className="mt-4 text-13 text-ink-3">No request data for this session.</p>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-surface p-6 rounded-lg border border-border shadow-sm min-w-0">
-            <h3 className="text-14 font-semibold text-ink-1 mb-5">Request Status Distribution</h3>
-            <div className="h-44 flex justify-center">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <PieChart>
-                  <Pie
-                    data={statusDistribution}
-                    cx="50%" cy="50%"
-                    innerRadius={50} outerRadius={70}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {statusDistribution.map((entry) => (
-                      <Cell key={entry.name} fill={STATUS_COLORS[entry.name] ?? '#888'} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
-              {statusDistribution.map((entry) => (
-                <div key={entry.name} className="flex items-center gap-1.5 text-12 text-ink-2">
-                  <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLORS[entry.name] }} />
-                  <span>{entry.name}</span>
-                  <span className="text-ink-4">({entry.value})</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-surface p-6 rounded-lg border border-border shadow-sm lg:col-span-2 min-w-0">
             <h3 className="text-14 font-semibold text-ink-1 mb-5">Top Requested Items</h3>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
