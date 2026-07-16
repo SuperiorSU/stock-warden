@@ -5,7 +5,7 @@ import { getRequestUser } from "@/lib/api/session";
 import { ForbiddenError, UnauthorizedError, ValidationError } from "@/lib/errors";
 import { AdminStatsItemsSchema } from "@/lib/validation/stats";
 import { cached } from "@/lib/cache/redis";
-import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { monthRangeUtc } from "@/lib/utils/month-range";
 import { getCurrentSessionYear } from "@/lib/utils/session-year";
 
 export async function GET(req: Request) {
@@ -36,8 +36,13 @@ export async function GET(req: Request) {
 
   const itemId = parsed.data.itemId;
   const { monthFrom, monthTo, category, sortBy, order } = parsed.data;
-  const dateFrom = monthFrom ? startOfMonth(parseISO(`${monthFrom}-01`)) : null;
-  const dateTo = monthTo ? endOfMonth(parseISO(`${monthTo}-01`)) : null;
+  // The item catalog stays scoped to the session year, but request/expenditure
+  // aggregates honour an explicit month range on its own: sessions span two
+  // calendar years, so ANDing both would hide data the user asked for by date.
+  // Cross-session leakage is impossible — itemIds are per-session rows.
+  const range = monthRangeUtc(monthFrom, monthTo);
+  const dateFrom = range?.gte ?? null;
+  const dateTo = range?.lte ?? null;
   const cacheKey = `admin:stats:items:${sessionYear}:${itemId ?? "all"}:${monthFrom ?? "all"}:${monthTo ?? "all"}:${category ?? "all"}:${sortBy ?? "default"}:${order ?? "desc"}`;
 
   const data = await cached(cacheKey, 300, async () => {
@@ -62,7 +67,8 @@ export async function GET(req: Request) {
               COALESCE(SUM(CASE WHEN r.status = 'REJECTED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalRejected"
             FROM "RequestItem" ri
             JOIN "Request" r ON r.id = ri."requestId"
-            WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" = ${itemId}
+            WHERE ri."itemId" = ${itemId}
+              ${range ? Prisma.empty : Prisma.sql`AND r."sessionYear" = ${sessionYear}`}
               ${dateFrom ? Prisma.sql`AND r."createdAt" >= ${dateFrom}` : Prisma.empty}
               ${dateTo ? Prisma.sql`AND r."createdAt" <= ${dateTo}` : Prisma.empty}
             GROUP BY ri."itemId";
@@ -75,7 +81,7 @@ export async function GET(req: Request) {
               COALESCE(SUM(CASE WHEN r.status = 'REJECTED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalRejected"
             FROM "RequestItem" ri
             JOIN "Request" r ON r.id = ri."requestId"
-            WHERE r."sessionYear" = ${sessionYear}
+            WHERE ${range ? Prisma.sql`TRUE` : Prisma.sql`r."sessionYear" = ${sessionYear}`}
               ${dateFrom ? Prisma.sql`AND r."createdAt" >= ${dateFrom}` : Prisma.empty}
               ${dateTo ? Prisma.sql`AND r."createdAt" <= ${dateTo}` : Prisma.empty}
             GROUP BY ri."itemId";
@@ -83,12 +89,9 @@ export async function GET(req: Request) {
       prisma.expenditureRecord.groupBy({
         by: ["itemId"],
         where: {
-          sessionYear,
           isReversed: false,
           ...(itemId ? { itemId } : {}),
-          ...((dateFrom || dateTo) && {
-            approvedAt: { ...(dateFrom && { gte: dateFrom }), ...(dateTo && { lte: dateTo }) },
-          }),
+          ...(range ? { approvedAt: range } : { sessionYear }),
         },
         _sum: { totalAmount: true },
         _count: { requestId: true },

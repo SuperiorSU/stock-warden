@@ -5,7 +5,7 @@ import { getRequestUser } from "@/lib/api/session";
 import { ForbiddenError, UnauthorizedError, ValidationError } from "@/lib/errors";
 import { SuperAdminOverviewSchema } from "@/lib/validation/stats";
 import { cached } from "@/lib/cache/redis";
-import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { monthRangeUtc } from "@/lib/utils/month-range";
 import { getCurrentSessionYear } from "@/lib/utils/session-year";
 
 const granularityMap: Record<string, string> = {
@@ -39,28 +39,26 @@ export async function GET(req: Request) {
 
   const granularity = parsed.data.granularity ?? "monthly";
   const { monthFrom, monthTo } = parsed.data;
-  const dateFrom = monthFrom ? startOfMonth(parseISO(`${monthFrom}-01`)) : null;
-  const dateTo = monthTo ? endOfMonth(parseISO(`${monthTo}-01`)) : null;
+  // An explicit month range replaces the session-year scope: sessions span two
+  // calendar years, so ANDing both would hide data the user asked for by date.
+  const range = monthRangeUtc(monthFrom, monthTo);
 
   const cacheKey = `super-admin:overview:${sessionYear}:${granularity}:${monthFrom ?? "all"}:${monthTo ?? "all"}`;
 
   const data = await cached(cacheKey, 600, async () => {
-    const dateFilter = Prisma.sql`
-      ${dateFrom ? Prisma.sql`AND r."createdAt" >= ${dateFrom}` : Prisma.empty}
-      ${dateTo ? Prisma.sql`AND r."createdAt" <= ${dateTo}` : Prisma.empty}
-    `;
+    const periodFilter = range
+      ? Prisma.sql`
+          ${range.gte ? Prisma.sql`AND r."createdAt" >= ${range.gte}` : Prisma.empty}
+          ${range.lte ? Prisma.sql`AND r."createdAt" <= ${range.lte}` : Prisma.empty}
+        `
+      : Prisma.sql`AND r."sessionYear" = ${sessionYear}`;
 
-    const createdAtRange =
-      dateFrom || dateTo
-        ? { ...(dateFrom && { gte: dateFrom }), ...(dateTo && { lte: dateTo }) }
-        : undefined;
+    const requestWhere = range ? { createdAt: range } : { sessionYear };
 
-    const totalRequests = await prisma.request.count({
-      where: { sessionYear, ...(createdAtRange && { createdAt: createdAtRange }) },
-    });
+    const totalRequests = await prisma.request.count({ where: requestWhere });
 
     const approvedRequests = await prisma.request.count({
-      where: { sessionYear, status: "APPROVED", ...(createdAtRange && { createdAt: createdAtRange }) },
+      where: { ...requestWhere, status: "APPROVED" as const },
     });
 
     const approvalRate = totalRequests === 0 ? 0 : approvedRequests / totalRequests;
@@ -70,7 +68,7 @@ export async function GET(req: Request) {
     >`
       SELECT AVG(EXTRACT(EPOCH FROM (r."processedAt" - r."createdAt")) / 3600) as "avgHours"
       FROM "Request" r
-      WHERE r."sessionYear" = ${sessionYear} AND r."processedAt" IS NOT NULL ${dateFilter};
+      WHERE r."processedAt" IS NOT NULL ${periodFilter};
     `;
 
     const series = await prisma.$queryRaw<
@@ -79,7 +77,7 @@ export async function GET(req: Request) {
       SELECT date_trunc(${granularityMap[granularity]}, r."createdAt") as bucket,
         COUNT(*) as total
       FROM "Request" r
-      WHERE r."sessionYear" = ${sessionYear} ${dateFilter}
+      WHERE TRUE ${periodFilter}
       GROUP BY bucket
       ORDER BY bucket ASC;
     `;
@@ -103,7 +101,7 @@ export async function GET(req: Request) {
         COUNT(*) FILTER (WHERE r.status = 'APPROVED') as approved,
         AVG(EXTRACT(EPOCH FROM (r."processedAt" - r."createdAt")) / 3600) as "avgHours"
       FROM "Request" r
-      WHERE r."sessionYear" = ${sessionYear} AND r."adminId" IS NOT NULL AND r."processedAt" IS NOT NULL ${dateFilter}
+      WHERE r."adminId" IS NOT NULL AND r."processedAt" IS NOT NULL ${periodFilter}
       GROUP BY r."adminId"
       ORDER BY processed DESC
       LIMIT 10;
@@ -136,7 +134,7 @@ export async function GET(req: Request) {
       FROM "InventoryItem" i
       JOIN "RequestItem" ri ON ri."itemId" = i.id
       JOIN "Request" r ON r.id = ri."requestId"
-      WHERE r."sessionYear" = ${sessionYear} ${dateFilter}
+      WHERE TRUE ${periodFilter}
       GROUP BY i.name
       ORDER BY qty DESC
       LIMIT 5;
@@ -148,7 +146,7 @@ export async function GET(req: Request) {
       SELECT u.department as department, COUNT(*) as total
       FROM "Request" r
       JOIN "User" u ON u.id = r."userId"
-      WHERE r."sessionYear" = ${sessionYear} ${dateFilter}
+      WHERE TRUE ${periodFilter}
       GROUP BY u.department
       ORDER BY total DESC
       LIMIT 5;

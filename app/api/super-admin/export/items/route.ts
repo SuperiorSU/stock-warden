@@ -3,7 +3,8 @@ import { getRequestUser } from "@/lib/api/session";
 import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
 import { apiError } from "@/lib/api/response";
 import * as XLSX from "xlsx";
-import { startOfMonth, endOfMonth, parseISO, format } from "date-fns";
+import { format } from "date-fns";
+import { monthRangeUtc } from "@/lib/utils/month-range";
 import { Prisma } from "@prisma/client";
 
 const EXPORT_CAP = 5000;
@@ -35,18 +36,16 @@ export async function GET(req: Request) {
   const category  = searchParams.get("category") || undefined;
   const itemId    = searchParams.get("itemId") || undefined;
 
-  const dateFrom = monthFrom ? startOfMonth(parseISO(`${monthFrom}-01`)) : null;
-  const dateTo   = monthTo ? endOfMonth(parseISO(`${monthTo}-01`)) : null;
+  // Mirrors /admin/stats/items: the catalog stays session-scoped, but an
+  // explicit month range replaces the session-year scope on request and
+  // expenditure aggregates so the export matches the on-screen table.
+  const range = monthRangeUtc(monthFrom, monthTo);
+  const dateFrom = range?.gte ?? null;
+  const dateTo   = range?.lte ?? null;
 
   const expenditureWhere: Prisma.ExpenditureRecordWhereInput = {
-    sessionYear,
     isReversed: false,
-    ...((monthFrom || monthTo) && {
-      approvedAt: {
-        ...(monthFrom && { gte: startOfMonth(parseISO(`${monthFrom}-01`)) }),
-        ...(monthTo && { lte: endOfMonth(parseISO(`${monthTo}-01`)) }),
-      },
-    }),
+    ...(range ? { approvedAt: range } : { sessionYear }),
     ...(category && { category }),
     ...(itemId && { itemId }),
   };
@@ -82,7 +81,8 @@ export async function GET(req: Request) {
             COALESCE(SUM(CASE WHEN r.status = 'REJECTED' THEN ri."quantityReq" ELSE 0 END), 0) as "totalRejected"
           FROM "RequestItem" ri
           JOIN "Request" r ON r.id = ri."requestId"
-          WHERE r."sessionYear" = ${sessionYear} AND ri."itemId" IN (${Prisma.join(itemIds)})
+          WHERE ri."itemId" IN (${Prisma.join(itemIds)})
+            ${range ? Prisma.empty : Prisma.sql`AND r."sessionYear" = ${sessionYear}`}
             ${dateFrom ? Prisma.sql`AND r."createdAt" >= ${dateFrom}` : Prisma.empty}
             ${dateTo ? Prisma.sql`AND r."createdAt" <= ${dateTo}` : Prisma.empty}
           GROUP BY ri."itemId";
@@ -127,15 +127,7 @@ export async function GET(req: Request) {
   const requestItems = await prisma.requestItem.findMany({
     where: {
       itemId: { in: itemIds },
-      request: {
-        sessionYear,
-        ...((monthFrom || monthTo) && {
-          createdAt: {
-            ...(monthFrom && { gte: startOfMonth(parseISO(`${monthFrom}-01`)) }),
-            ...(monthTo && { lte: endOfMonth(parseISO(`${monthTo}-01`)) }),
-          },
-        }),
-      },
+      request: range ? { createdAt: range } : { sessionYear },
     },
     select: {
       quantityReq: true,

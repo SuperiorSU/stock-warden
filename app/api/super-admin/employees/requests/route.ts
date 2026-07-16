@@ -6,7 +6,8 @@ import { cachedGet, cachedSet } from "@/lib/cache/redis";
 import { CacheKeys } from "@/lib/cache/keys";
 import { serialise } from "@/lib/api/serialise";
 import { Prisma } from "@prisma/client";
-import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { createHash } from "node:crypto";
+import { monthRangeUtc } from "@/lib/utils/month-range";
 
 function buildOrderBy(
   sortBy: string,
@@ -55,12 +56,15 @@ export async function GET(req: Request) {
 
   if (isNaN(yearRaw)) return apiError(new ValidationError("Invalid sessionYear."));
 
-  // Simple hash for cache key
-  const filterHash = Buffer.from(
-    JSON.stringify({ employeeId, department, status, itemId, monthFrom, monthTo, sortBy, order })
-  )
-    .toString("base64")
-    .slice(0, 8);
+  // Full digest of every parameter that changes the response — a truncated
+  // encoding of the raw JSON collides across filter values and would serve
+  // one filter's cached result for another.
+  const filterHash = createHash("sha256")
+    .update(
+      JSON.stringify({ employeeId, department, status, itemId, monthFrom, monthTo, sortBy, order, limit })
+    )
+    .digest("hex")
+    .slice(0, 16);
 
   const cacheKey = CacheKeys.saEmpRequests(yearRaw, filterHash);
 
@@ -74,18 +78,17 @@ export async function GET(req: Request) {
     if (hit) return apiSuccess(hit.data, hit.meta);
   }
 
+  // An explicit month range is authoritative: session years span two calendar
+  // years (e.g. session 2026 runs Dec 2025 – Jul 2026), so ANDing the range
+  // with a session year would hide data the user asked for by date.
+  const createdAtRange = monthRangeUtc(monthFrom, monthTo);
+
   const where: Prisma.RequestWhereInput = {
-    sessionYear: yearRaw,
+    ...(createdAtRange ? { createdAt: createdAtRange } : { sessionYear: yearRaw }),
     ...(employeeId && { userId: employeeId }),
     ...(department && { user: { department } }),
     ...(status && { status: status as Prisma.EnumRequestStatusFilter }),
     ...(itemId && { items: { some: { itemId } } }),
-    ...((monthFrom || monthTo) && {
-      createdAt: {
-        ...(monthFrom && { gte: startOfMonth(parseISO(`${monthFrom}-01`)) }),
-        ...(monthTo && { lte: endOfMonth(parseISO(`${monthTo}-01`)) }),
-      },
-    }),
   };
 
   const [requests, total] = await Promise.all([

@@ -3,7 +3,7 @@ import { apiError, apiSuccess } from "@/lib/api/response";
 import { getRequestUser } from "@/lib/api/session";
 import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from "@/lib/errors";
 import { serialise } from "@/lib/api/serialise";
-import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { monthRangeUtc } from "@/lib/utils/month-range";
 import { Prisma } from "@prisma/client";
 
 export async function GET(
@@ -32,17 +32,19 @@ export async function GET(
   });
   if (!employee) return apiError(new NotFoundError("Employee not found."));
 
-  // ExpenditureRecord has no Prisma relation — use raw SQL for clean join
+  // ExpenditureRecord has no Prisma relation — use raw SQL for clean join.
+  // An explicit month range replaces the session-year scope: sessions span two
+  // calendar years, so ANDing both would hide data the user asked for by date.
+  const range = monthRangeUtc(monthFrom, monthTo);
   const dateFilters: Prisma.Sql[] = [
     Prisma.sql`er."isReversed" = false`,
-    Prisma.sql`er."sessionYear" = ${yearRaw}`,
     Prisma.sql`r."userId" = ${userId}`,
   ];
-  if (monthFrom) {
-    dateFilters.push(Prisma.sql`er."approvedAt" >= ${startOfMonth(parseISO(`${monthFrom}-01`))}`);
-  }
-  if (monthTo) {
-    dateFilters.push(Prisma.sql`er."approvedAt" <= ${endOfMonth(parseISO(`${monthTo}-01`))}`);
+  if (range) {
+    if (range.gte) dateFilters.push(Prisma.sql`er."approvedAt" >= ${range.gte}`);
+    if (range.lte) dateFilters.push(Prisma.sql`er."approvedAt" <= ${range.lte}`);
+  } else {
+    dateFilters.push(Prisma.sql`er."sessionYear" = ${yearRaw}`);
   }
 
   const where = Prisma.join(dateFilters, " AND ");

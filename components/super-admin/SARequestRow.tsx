@@ -2,7 +2,7 @@
 
 import { memo } from 'react'
 import { format } from 'date-fns'
-import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { formatINR } from '@/lib/utils/format'
 import { SARequest } from './types'
@@ -34,19 +34,18 @@ export const SARequestRowMemo = memo(function SARequestRow({
         onClick={onToggle}
       >
         <td className="px-6 py-4">
-          <div className="flex items-center gap-1.5">
+          {employeeBasePath ? (
+            <Link
+              href={`${employeeBasePath}/${request.user.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-medium text-[--ink-primary] hover:underline"
+              title="View employee profile"
+            >
+              {request.user.name}
+            </Link>
+          ) : (
             <span className="font-medium text-[--ink-primary]">{request.user.name}</span>
-            {employeeBasePath && (
-              <Link
-                href={`${employeeBasePath}/${request.user.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-[--ink-disabled] hover:text-[--ink-primary] transition-colors"
-                title="View employee profile"
-              >
-                <ExternalLink size={12} />
-              </Link>
-            )}
-          </div>
+          )}
           <div className="text-xs text-[--ink-secondary]">{request.user.employeeId ?? '—'}</div>
         </td>
         <td className="px-6 py-4 text-[--ink-secondary]">{request.user.department ?? '—'}</td>

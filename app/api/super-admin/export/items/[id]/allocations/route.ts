@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db/prisma";
 import { apiError } from "@/lib/api/response";
 import { getRequestUser } from "@/lib/api/session";
 import { ForbiddenError, UnauthorizedError, ValidationError, NotFoundError } from "@/lib/errors";
-import { startOfMonth, endOfMonth, parseISO, format } from "date-fns";
+import { format } from "date-fns";
+import { monthRangeUtc } from "@/lib/utils/month-range";
 import { Prisma } from "@prisma/client";
 import * as XLSX from "xlsx";
 
@@ -41,16 +42,18 @@ export async function GET(
   });
   if (!item) return apiError(new NotFoundError("Item not found."));
 
+  // Mirrors /super-admin/items/[id]/approved: an explicit month range replaces
+  // the session-year scope so the export matches the on-screen table.
+  const range = monthRangeUtc(monthFrom, monthTo);
   const dateFilters: Prisma.Sql[] = [
     Prisma.sql`er."isReversed" = false`,
     Prisma.sql`er."itemId" = ${itemId}`,
-    Prisma.sql`er."sessionYear" = ${yearRaw}`,
   ];
-  if (monthFrom) {
-    dateFilters.push(Prisma.sql`er."approvedAt" >= ${startOfMonth(parseISO(`${monthFrom}-01`))}`);
-  }
-  if (monthTo) {
-    dateFilters.push(Prisma.sql`er."approvedAt" <= ${endOfMonth(parseISO(`${monthTo}-01`))}`);
+  if (range) {
+    if (range.gte) dateFilters.push(Prisma.sql`er."approvedAt" >= ${range.gte}`);
+    if (range.lte) dateFilters.push(Prisma.sql`er."approvedAt" <= ${range.lte}`);
+  } else {
+    dateFilters.push(Prisma.sql`er."sessionYear" = ${yearRaw}`);
   }
   const where = Prisma.join(dateFilters, " AND ");
 

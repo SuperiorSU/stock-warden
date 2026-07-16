@@ -3,7 +3,8 @@ import { apiError, apiSuccess } from "@/lib/api/response";
 import { getRequestUser } from "@/lib/api/session";
 import { ForbiddenError, UnauthorizedError, ValidationError } from "@/lib/errors";
 import { serialise } from "@/lib/api/serialise";
-import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { monthRangeUtc } from "@/lib/utils/month-range";
+import { Prisma } from "@prisma/client";
 
 export async function GET(
   req: Request,
@@ -28,19 +29,16 @@ export async function GET(
 
   if (isNaN(yearRaw)) return apiError(new ValidationError("Invalid sessionYear."));
 
+  // An explicit month range replaces the session-year scope: sessions span two
+  // calendar years, so ANDing both would hide data the user asked for by date.
+  const range = monthRangeUtc(monthFrom, monthTo);
+  const where: Prisma.RequestItemWhereInput = {
+    itemId,
+    request: range ? { createdAt: range } : { sessionYear: yearRaw },
+  };
+
   const requestItems = await prisma.requestItem.findMany({
-    where: {
-      itemId,
-      request: {
-        sessionYear: yearRaw,
-        ...((monthFrom || monthTo) && {
-          createdAt: {
-            ...(monthFrom && { gte: startOfMonth(parseISO(`${monthFrom}-01`)) }),
-            ...(monthTo && { lte: endOfMonth(parseISO(`${monthTo}-01`)) }),
-          },
-        }),
-      },
-    },
+    where,
     select: {
       id: true,
       quantityReq: true,
@@ -74,7 +72,7 @@ export async function GET(
   const hasMore = requestItems.length > limit;
   const page = hasMore ? requestItems.slice(0, -1) : requestItems;
   const nextCursor = hasMore ? page[page.length - 1].id : null;
-  const total = await prisma.requestItem.count({ where: { itemId } });
+  const total = await prisma.requestItem.count({ where });
 
   return apiSuccess(serialise({ requestItems: page }), { total, hasMore, nextCursor });
 }

@@ -3,7 +3,8 @@ import { getRequestUser } from "@/lib/api/session";
 import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
 import { apiError } from "@/lib/api/response";
 import * as XLSX from "xlsx";
-import { startOfMonth, endOfMonth, parseISO, format } from "date-fns";
+import { format } from "date-fns";
+import { monthRangeUtc } from "@/lib/utils/month-range";
 import { Prisma } from "@prisma/client";
 
 const EXPORT_CAP = 5000;
@@ -68,18 +69,16 @@ export async function GET(req: Request) {
 
   const filters = { sessionYear, monthFrom, monthTo };
 
+  // Mirrors /super-admin/employees/requests: an explicit month range replaces
+  // the session-year scope so the export matches the on-screen table.
+  const createdAtRange = monthRangeUtc(monthFrom, monthTo);
+
   const where: Prisma.RequestWhereInput = {
-    sessionYear,
+    ...(createdAtRange ? { createdAt: createdAtRange } : { sessionYear }),
     ...(employeeId && { userId: employeeId }),
     ...(department && { user: { department } }),
     ...(status && { status: status as Prisma.EnumRequestStatusFilter }),
     ...(itemId && { items: { some: { itemId } } }),
-    ...((monthFrom || monthTo) && {
-      createdAt: {
-        ...(monthFrom && { gte: startOfMonth(parseISO(`${monthFrom}-01`)) }),
-        ...(monthTo && { lte: endOfMonth(parseISO(`${monthTo}-01`)) }),
-      },
-    }),
   };
 
   const requests = await prisma.request.findMany({

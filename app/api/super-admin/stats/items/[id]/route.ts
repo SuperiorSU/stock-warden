@@ -4,7 +4,7 @@ import { apiError, apiSuccess } from "@/lib/api/response";
 import { getRequestUser } from "@/lib/api/session";
 import { NotFoundError, UnauthorizedError, ValidationError } from "@/lib/errors";
 import { cached } from "@/lib/cache/redis";
-import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { monthRangeUtc } from "@/lib/utils/month-range";
 import { z } from "zod";
 
 const QuerySchema = z.object({
@@ -30,8 +30,9 @@ export async function GET(
     return apiError(new ValidationError("Invalid query parameters.", parsed.error.flatten()));
   }
   const { monthFrom, monthTo } = parsed.data;
-  const dateFrom = monthFrom ? startOfMonth(parseISO(`${monthFrom}-01`)) : null;
-  const dateTo = monthTo ? endOfMonth(parseISO(`${monthTo}-01`)) : null;
+  const range = monthRangeUtc(monthFrom, monthTo);
+  const dateFrom = range?.gte ?? null;
+  const dateTo = range?.lte ?? null;
 
   const { id } = await params;
   const cacheKey = `super-admin:stats:items:${id}:${monthFrom ?? "all"}:${monthTo ?? "all"}`;
